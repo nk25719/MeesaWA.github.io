@@ -15,7 +15,11 @@
     .system { color: gray; font-style: italic; }
     .private { color: #ba68c8; font-weight: bold; }
     .timestamp { font-size: 0.8em; color: #bbb; margin-left: 10px; }
+    .message { margin-bottom: 5px; }
+    .meta-buttons { margin-left: 10px; cursor: pointer; font-size: 0.8em; color: #888; }
+    .pinned { border-left: 4px solid gold; padding-left: 5px; margin-bottom: 5px; background: #3a3a1e; }
     #typing { font-size: 0.9em; font-style: italic; margin-top: 5px; color: #aaa; }
+    #pinnedBox { margin-bottom: 10px; }
   </style>
 </head>
 <body>
@@ -27,6 +31,7 @@
     <button onclick="startChat()">Join Chat</button>
   </div>
 
+  <div id="pinnedBox"></div>
   <div id="chat" style="display: none;"></div>
   <div id="typing"></div>
 
@@ -60,6 +65,7 @@
         client.subscribe(`${baseTopic}/${room}/private/${username}`);
         client.subscribe(`${baseTopic}/${room}/presence`);
         client.subscribe(`${baseTopic}/${room}/typing`);
+        client.subscribe(`${baseTopic}/${room}/pinned`);
         sendPresence('joined');
         appendMessage(`✅ Connected as ${username} in #${room}`, 'system');
       });
@@ -69,18 +75,23 @@
 
         if (topic.endsWith('/presence') && payload.username !== username) {
           appendMessage(`👥 ${payload.username} ${payload.status}`, 'system', payload.timestamp);
-        }
-        else if (topic.endsWith('/typing') && payload.username !== username) {
+        } else if (topic.endsWith('/typing') && payload.username !== username) {
           document.getElementById('typing').textContent = `${payload.username} is typing...`;
           clearTimeout(typingTimeout);
           typingTimeout = setTimeout(() => document.getElementById('typing').textContent = '', 2000);
-        }
-        else if (topic.endsWith('/public')) {
+        } else if (topic.endsWith('/public')) {
+          if (payload.action === 'delete') {
+            const el = document.getElementById(payload.id);
+            if (el) el.remove();
+            return;
+          }
           const isMine = payload.username === username;
-          appendMessage(`${payload.username}: ${payload.text}`, isMine ? 'you' : 'other', payload.timestamp);
-        }
-        else if (topic.endsWith(`/private/${username}`)) {
+          appendMessage(`${payload.username}: ${payload.text}`, isMine ? 'you' : 'other', payload.timestamp, payload.id, isMine);
+          if (!isMine) sendAck(payload.id);
+        } else if (topic.endsWith(`/private/${username}`)) {
           appendMessage(`🔒 ${payload.username} ➤ you: ${payload.text}`, 'private', payload.timestamp);
+        } else if (topic.endsWith('/pinned')) {
+          document.getElementById('pinnedBox').innerHTML = `<div class="pinned">📌 ${payload.text}</div>`;
         }
       });
 
@@ -101,6 +112,7 @@
       const msg = document.getElementById('message').value.trim();
       if (!msg) return;
       const timestamp = new Date().toISOString();
+      const id = 'msg_' + Date.now();
       document.getElementById('message').value = '';
 
       if (msg.startsWith('@')) {
@@ -110,10 +122,13 @@
         const text = msg.slice(spaceIndex + 1);
         client.publish(`${baseTopic}/${room}/private/${toUser}`, JSON.stringify({ username, text, timestamp }));
         appendMessage(`🔒 you ➤ ${toUser}: ${text}`, 'private', timestamp);
+      } else if (msg.startsWith('/pin ')) {
+        const text = msg.substring(5);
+        client.publish(`${baseTopic}/${room}/pinned`, JSON.stringify({ username, text }));
       } else {
-        client.publish(`${baseTopic}/${room}/public`, JSON.stringify({ username, text: msg, timestamp }));
+        client.publish(`${baseTopic}/${room}/public`, JSON.stringify({ username, text: msg, timestamp, id }));
+        appendMessage(`${username}: ${msg}`, 'you', timestamp, id, true);
       }
-      playNotification();
     }
 
     function sendPresence(status) {
@@ -121,12 +136,34 @@
       client.publish(`${baseTopic}/${room}/presence`, JSON.stringify({ username, status, timestamp }));
     }
 
-    function appendMessage(text, type = 'other', timestamp = null) {
+    function sendAck(messageId) {
+      // Future: implement read receipt logic
+      console.log('Message received:', messageId);
+    }
+
+    function deleteMessage(id) {
+      client.publish(`${baseTopic}/${room}/public`, JSON.stringify({ action: 'delete', id }));
+    }
+
+    function pinMessage(text) {
+      client.publish(`${baseTopic}/${room}/pinned`, JSON.stringify({ username, text }));
+    }
+
+    function appendMessage(text, type = 'other', timestamp = null, id = null, showTools = false) {
       const chat = document.getElementById('chat');
       const p = document.createElement('p');
-      p.className = type;
+      p.className = `message ${type}`;
+      if (id) p.id = id;
       const timeString = timestamp ? `<span class="timestamp">${new Date(timestamp).toLocaleTimeString()}</span>` : '';
-      p.innerHTML = `${text} ${timeString}`;
+
+      let tools = '';
+      if (showTools) {
+        tools = `
+          <span class="meta-buttons" onclick="deleteMessage('${id}')">🗑</span>
+          <span class="meta-buttons" onclick="pinMessage(\"${text.replace(/"/g, '\\"')}\")">📌</span>`;
+      }
+
+      p.innerHTML = `${text} ${timeString} ${tools}`;
       chat.appendChild(p);
       chat.scrollTop = chat.scrollHeight;
 
@@ -140,17 +177,11 @@
       const history = JSON.parse(localStorage.getItem('mqtt_chat_history') || '[]');
       history.forEach(entry => {
         const p = document.createElement('p');
-        p.className = entry.type;
+        p.className = `message ${entry.type}`;
         const timeString = entry.timestamp ? `<span class="timestamp">${new Date(entry.timestamp).toLocaleTimeString()}</span>` : '';
         p.innerHTML = `${entry.text} ${timeString}`;
         chat.appendChild(p);
       });
-    }
-
-    function playNotification() {
-      const audio = new Audio('https://notificationsounds.com/storage/sounds/file-sounds-1158-pristine.mp3');
-      audio.volume = 0.5;
-      audio.play();
     }
   </script>
 </body>
