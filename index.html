@@ -5,16 +5,17 @@
   <title>MQTT Chat</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
-    body { font-family: sans-serif; background: #f5f5f5; margin: 20px; }
-    #chat { background: #fff; border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 10px; }
-    #message, #username { width: 70%; padding: 5px; margin-top: 10px; }
-    #send { padding: 5px 10px; margin-left: 10px; }
+    body { font-family: sans-serif; background: #1e1e1e; color: #eee; margin: 20px; }
+    #chat { background: #2a2a2a; border: 1px solid #444; height: 300px; overflow-y: auto; padding: 10px; }
+    #message, #username, #room { width: 70%; padding: 5px; margin-top: 10px; background: #333; color: #eee; border: none; border-radius: 4px; }
+    #send { padding: 5px 10px; margin-left: 10px; background: #007acc; border: none; color: white; border-radius: 4px; }
     #login { margin-bottom: 20px; }
-    .you { color: blue; }
-    .other { color: green; }
+    .you { color: #4ea1ff; }
+    .other { color: #81c784; }
     .system { color: gray; font-style: italic; }
-    .private { color: purple; font-weight: bold; }
-    .timestamp { font-size: 0.8em; color: #aaa; margin-left: 10px; }
+    .private { color: #ba68c8; font-weight: bold; }
+    .timestamp { font-size: 0.8em; color: #bbb; margin-left: 10px; }
+    #typing { font-size: 0.9em; font-style: italic; margin-top: 5px; color: #aaa; }
   </style>
 </head>
 <body>
@@ -22,25 +23,29 @@
 
   <div id="login">
     <input id="username" placeholder="Enter your username" />
+    <input id="room" placeholder="Enter room name (e.g. general)" />
     <button onclick="startChat()">Join Chat</button>
   </div>
 
   <div id="chat" style="display: none;"></div>
+  <div id="typing"></div>
 
   <div id="inputArea" style="display: none;">
-    <input id="message" placeholder="Type message (use @user for private)" onkeydown="if(event.key==='Enter')sendMessage();" />
+    <input id="message" placeholder="Type message (use @user for private)" onkeydown="handleKey(event)" />
     <button id="send" onclick="sendMessage()">Send</button>
   </div>
 
   <script>
     let client;
-    const publicTopic = 'chat/naghamfriend/public';
-    const presenceTopic = 'chat/naghamfriend/presence';
     let username = '';
+    let room = '';
+    let typingTimeout;
+    const baseTopic = 'chat/naghamfriend';
 
     function startChat() {
       username = document.getElementById('username').value.trim();
-      if (!username) return alert('Please enter a username.');
+      room = document.getElementById('room').value.trim() || 'general';
+      if (!username) return alert('Enter username.');
 
       document.getElementById('login').style.display = 'none';
       document.getElementById('chat').style.display = 'block';
@@ -51,67 +56,69 @@
       client = mqtt.connect('wss://test.mosquitto.org:8081');
 
       client.on('connect', () => {
-        client.subscribe(publicTopic);
-        client.subscribe(`chat/naghamfriend/private/${username}`);
-        client.subscribe(presenceTopic);
+        client.subscribe(`${baseTopic}/${room}/public`);
+        client.subscribe(`${baseTopic}/${room}/private/${username}`);
+        client.subscribe(`${baseTopic}/${room}/presence`);
+        client.subscribe(`${baseTopic}/${room}/typing`);
         sendPresence('joined');
-        appendMessage('✅ Connected as ' + username, 'system');
+        appendMessage(`✅ Connected as ${username} in #${room}`, 'system');
       });
 
       client.on('message', (topic, message) => {
         const payload = JSON.parse(message.toString());
 
-        // Presence messages
-        if (topic === presenceTopic && payload.username !== username) {
+        if (topic.endsWith('/presence') && payload.username !== username) {
           appendMessage(`👥 ${payload.username} ${payload.status}`, 'system', payload.timestamp);
         }
-
-        // Public chat
-        else if (topic === publicTopic) {
-          const isMine = payload.username === username;
-          const type = isMine ? 'you' : 'other';
-          appendMessage(`${payload.username}: ${payload.text}`, type, payload.timestamp);
+        else if (topic.endsWith('/typing') && payload.username !== username) {
+          document.getElementById('typing').textContent = `${payload.username} is typing...`;
+          clearTimeout(typingTimeout);
+          typingTimeout = setTimeout(() => document.getElementById('typing').textContent = '', 2000);
         }
-
-        // Private message
-        else if (topic === `chat/naghamfriend/private/${username}`) {
+        else if (topic.endsWith('/public')) {
+          const isMine = payload.username === username;
+          appendMessage(`${payload.username}: ${payload.text}`, isMine ? 'you' : 'other', payload.timestamp);
+        }
+        else if (topic.endsWith(`/private/${username}`)) {
           appendMessage(`🔒 ${payload.username} ➤ you: ${payload.text}`, 'private', payload.timestamp);
         }
       });
 
-      window.addEventListener('beforeunload', () => {
-        sendPresence('left');
-      });
+      window.addEventListener('beforeunload', () => sendPresence('left'));
+    }
+
+    function handleKey(event) {
+      if (event.key === 'Enter') sendMessage();
+      else sendTyping();
+    }
+
+    function sendTyping() {
+      const timestamp = new Date().toISOString();
+      client.publish(`${baseTopic}/${room}/typing`, JSON.stringify({ username, timestamp }));
     }
 
     function sendMessage() {
       const msg = document.getElementById('message').value.trim();
       if (!msg) return;
-
       const timestamp = new Date().toISOString();
       document.getElementById('message').value = '';
 
-      // Private message
       if (msg.startsWith('@')) {
         const spaceIndex = msg.indexOf(' ');
-        if (spaceIndex === -1) {
-          return alert('Invalid private message format. Use @username your message');
-        }
-
+        if (spaceIndex === -1) return alert('Use @username message');
         const toUser = msg.slice(1, spaceIndex);
         const text = msg.slice(spaceIndex + 1);
-        client.publish(`chat/naghamfriend/private/${toUser}`, JSON.stringify({ username, text, timestamp }));
+        client.publish(`${baseTopic}/${room}/private/${toUser}`, JSON.stringify({ username, text, timestamp }));
         appendMessage(`🔒 you ➤ ${toUser}: ${text}`, 'private', timestamp);
+      } else {
+        client.publish(`${baseTopic}/${room}/public`, JSON.stringify({ username, text: msg, timestamp }));
       }
-      // Public message
-      else {
-        client.publish(publicTopic, JSON.stringify({ username, text: msg, timestamp }));
-      }
+      playNotification();
     }
 
     function sendPresence(status) {
       const timestamp = new Date().toISOString();
-      client.publish(presenceTopic, JSON.stringify({ username, status, timestamp }));
+      client.publish(`${baseTopic}/${room}/presence`, JSON.stringify({ username, status, timestamp }));
     }
 
     function appendMessage(text, type = 'other', timestamp = null) {
@@ -123,7 +130,6 @@
       chat.appendChild(p);
       chat.scrollTop = chat.scrollHeight;
 
-      // Save to localStorage
       const history = JSON.parse(localStorage.getItem('mqtt_chat_history') || '[]');
       history.push({ text, type, timestamp });
       localStorage.setItem('mqtt_chat_history', JSON.stringify(history.slice(-100)));
@@ -139,6 +145,12 @@
         p.innerHTML = `${entry.text} ${timeString}`;
         chat.appendChild(p);
       });
+    }
+
+    function playNotification() {
+      const audio = new Audio('https://notificationsounds.com/storage/sounds/file-sounds-1158-pristine.mp3');
+      audio.volume = 0.5;
+      audio.play();
     }
   </script>
 </body>
