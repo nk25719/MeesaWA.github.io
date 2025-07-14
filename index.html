@@ -87,6 +87,14 @@
             if (el) el.remove();
             return;
           }
+
+          // ✅ Skip if this message was already shown locally (your own message)
+          if (payload.username === username) return;
+          if (payload.action === 'delete') {
+            const el = document.getElementById(payload.id);
+            if (el) el.remove();
+            return;
+          }
           const isMine = payload.username === username;
           appendMessage(`${payload.username}: ${payload.text}`, isMine ? 'you' : 'other', payload.timestamp, payload.id, isMine);
           if (!isMine) sendAck(payload.id);
