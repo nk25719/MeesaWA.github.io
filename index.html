@@ -26,6 +26,14 @@
         .then(reg => console.log('✅ Service Worker registered', reg))
         .catch(err => console.error('❌ Service Worker registration failed', err));
     }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (Notification.permission !== 'granted') {
+        Notification.requestPermission().then(result => {
+          console.log('Notification permission:', result);
+        });
+      }
+    });
   </script>
   <style>
     body {
@@ -104,7 +112,7 @@
   <div id="login">
     <input id="username" placeholder="Enter your username" />
     <input id="room" placeholder="Room (e.g. general)" />
-    <button type="button" onclick="startChat()">Join</button>
+    <button type="button" id="joinBtn">Join</button>
   </div>
 
   <div id="pinnedBox"></div>
@@ -125,9 +133,7 @@
     const baseTopic = 'chat/naghamfriend';
 
     function startChat() {
-      if (Notification.permission !== 'granted') {
-        Notification.requestPermission();
-      }
+      console.log('[startChat] called');
       username = document.getElementById('username').value.trim();
       room = document.getElementById('room').value.trim() || 'general';
       if (!username) return alert('Please enter your name');
@@ -140,6 +146,7 @@
       client = mqtt.connect('wss://test.mosquitto.org:8081');
 
       client.on('connect', () => {
+        console.log('MQTT connected');
         client.subscribe(`${baseTopic}/${room}/public`);
         client.subscribe(`${baseTopic}/${room}/private/${username}`);
         client.subscribe(`${baseTopic}/${room}/presence`);
@@ -178,6 +185,9 @@
 
       window.addEventListener('beforeunload', () => sendPresence('left'));
     }
+
+    document.getElementById('joinBtn').addEventListener('click', startChat);
+    document.getElementById('joinBtn').addEventListener('touchstart', startChat);
 
     function handleKey(event) {
       if (event.key === 'Enter') sendMessage();
