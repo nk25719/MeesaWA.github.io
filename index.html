@@ -9,24 +9,23 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MQTT Chat">
   <link rel="apple-touch-icon" href="icon-192.png">
-<title>MQTT Chat</title>
+  <title>MQTT Chat</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-<script>
-  function showNotification(title, body) {
-    if (document.hasFocus()) return;
-    if (Notification.permission === 'granted') {
-      const notification = new Notification(title, { body });
-      setTimeout(() => notification.close(), 4000);
-    }
-  }
-</script>
   <script>
-    // Disabled for testing
-    // if ('serviceWorker' in navigator) {
-    //   navigator.serviceWorker.register('sw.js')
-    //     .then(reg => console.log('✅ Service Worker registered', reg))
-    //     .catch(err => console.error('❌ Service Worker registration failed', err));
-    // }
+    function showNotification(title, body) {
+      if (document.hasFocus()) return;
+      if (Notification.permission === 'granted') {
+        const notification = new Notification(title, { body });
+        setTimeout(() => notification.close(), 4000);
+      }
+    }
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('✅ Service Worker registered', reg))
+        .catch(err => console.error('❌ Service Worker registration failed', err));
+    }
   </script>
   <style>
     body {
@@ -148,6 +147,11 @@
         client.subscribe(`${baseTopic}/${room}/pinned`);
         sendPresence('joined');
         appendMessage(`✅ Connected as ${username} in #${room}`, 'system');
+      });
+
+      client.on('error', (err) => {
+        console.error('MQTT Connection Error:', err);
+        alert('❌ MQTT connection failed: ' + err.message);
       });
 
       client.on('message', (topic, message) => {
