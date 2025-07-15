@@ -4,7 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MQTT Chat</title>
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js">  function showNotification(title, body) {
+    if (document.hasFocus()) return;
+    if (Notification.permission === 'granted') {
+      const notification = new Notification(title, { body });
+      setTimeout(() => notification.close(), 4000);
+    }
+  }
+</script>
   <style>
     body {
       font-family: sans-serif;
@@ -103,6 +110,9 @@
     const baseTopic = 'chat/naghamfriend';
 
     function startChat() {
+      if (Notification.permission !== 'granted') {
+        Notification.requestPermission();
+      }
       username = document.getElementById('username').value.trim();
       room = document.getElementById('room').value.trim() || 'general';
       if (!username) return alert('Please enter your name');
@@ -133,17 +143,11 @@
           document.getElementById('typing').textContent = `${payload.username} is typing...`;
           clearTimeout(typingTimeout);
           typingTimeout = setTimeout(() => document.getElementById('typing').textContent = '', 2000);
-        } else if (topic.endsWith('/public')) {
-          if (payload.action === 'delete') {
-            const el = document.getElementById(payload.id);
-            if (el) el.remove();
-            return;
-          }
-          if (payload.username === username) return;
-          appendMessage(`${payload.username}: ${payload.text}`, 'other', payload.timestamp, payload.id, false);
+        } else if (topic.endsWith('/public')) {$1appendMessage(`${payload.username}: ${payload.text}`, 'other', payload.timestamp, payload.id, false);
+          showNotification(`New message from ${payload.username}`, payload.text);
           sendAck(payload.id);
-        } else if (topic.endsWith(`/private/${username}`)) {
-          appendMessage(`🔒 ${payload.username} ➤ you: ${payload.text}`, 'private', payload.timestamp);
+        } else if (topic.endsWith(`/private/${username}`)) {$1appendMessage(`🔒 ${payload.username} ➤ you: ${payload.text}`, 'private', payload.timestamp);
+          showNotification(`Private from ${payload.username}`, payload.text);
         } else if (topic.endsWith('/pinned')) {
           document.getElementById('pinnedBox').innerHTML = `<div class="pinned">📌 ${payload.text}</div>`;
         }
