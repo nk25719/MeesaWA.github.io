@@ -8,8 +8,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MQTT Chat">
   <link rel="apple-touch-icon" href="icon-192.png">
-$1<title>MQTT Chat</title>
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js">  function showNotification(title, body) {
+<title>MQTT Chat</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script>
+  function showNotification(title, body) {
     if (document.hasFocus()) return;
     if (Notification.permission === 'granted') {
       const notification = new Notification(title, { body });
@@ -155,10 +157,13 @@ $1<title>MQTT Chat</title>
           document.getElementById('typing').textContent = `${payload.username} is typing...`;
           clearTimeout(typingTimeout);
           typingTimeout = setTimeout(() => document.getElementById('typing').textContent = '', 2000);
-        } else if (topic.endsWith('/public')) {$1appendMessage(`${payload.username}: ${payload.text}`, 'other', payload.timestamp, payload.id, false);
+        } else if (topic.endsWith('/public')) {
+          if (payload.username === username) return;
+          appendMessage(`${payload.username}: ${payload.text}`, 'other', payload.timestamp, payload.id, false);
           showNotification(`New message from ${payload.username}`, payload.text);
           sendAck(payload.id);
-        } else if (topic.endsWith(`/private/${username}`)) {$1appendMessage(`🔒 ${payload.username} ➤ you: ${payload.text}`, 'private', payload.timestamp);
+        } else if (topic.endsWith(`/private/${username}`)) {
+          appendMessage(`🔒 ${payload.username} ➤ you: ${payload.text}`, 'private', payload.timestamp);
           showNotification(`Private from ${payload.username}`, payload.text);
         } else if (topic.endsWith('/pinned')) {
           document.getElementById('pinnedBox').innerHTML = `<div class="pinned">📌 ${payload.text}</div>`;
