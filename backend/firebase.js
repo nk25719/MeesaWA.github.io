@@ -1,19 +1,19 @@
 const admin = require('firebase-admin');
-const { FIREBASE_SERVER_KEY } = process.env;
+const serviceAccount = require('./serviceAccountKey.json');
 
 admin.initializeApp({
-  credential: admin.credential.applicationDefault()
+  credential: admin.credential.cert(serviceAccount),
 });
 
 const sendNotification = async (title, body, token) => {
   try {
     await admin.messaging().send({
       notification: { title, body },
-      token
+      token,
     });
-    console.log('✅ Notification sent');
+    console.log('✅ Notification sent to:', token);
   } catch (error) {
-    console.error('❌ Notification error:', error);
+    console.error('❌ Failed to send notification:', error.message);
   }
 };
 
