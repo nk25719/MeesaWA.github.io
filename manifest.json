@@ -1,10 +1,11 @@
 {
-  "name": "MQTT Chat",
-  "short_name": "MQTTChat",
+  "name": "Meesa WA",
+  "short_name": "Meesa",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#1e1e1e",
   "theme_color": "#007acc",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "icon-192.png",

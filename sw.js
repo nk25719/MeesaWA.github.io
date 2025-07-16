@@ -1,29 +1,35 @@
-const CACHE_NAME = 'mqtt-chat-cache-v1';
-const urlsToCache = [
+const CACHE_NAME = 'meesa-wa-v1';
+const URLS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
   '/icon-192.png',
-  // add any other static assets your app uses
+  '/icon-512.png',
+  'https://unpkg.com/mqtt/dist/mqtt.min.js'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+    caches.open(CACHE_NAME).then(cache => cache.addAll(URLS_TO_CACHE))
   );
 });
 
 self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url);
-
-  // Ignore websocket requests to not block MQTT connections
-  if (url.protocol === 'wss:') {
-    return;
-  }
-
   event.respondWith(
-    caches.match(event.request).then(response => {
-      return response || fetch(event.request);
-    })
+    caches.match(event.request).then(response =>
+      response || fetch(event.request)
+    )
+  );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames =>
+      Promise.all(
+        cacheNames
+          .filter(name => name !== CACHE_NAME)
+          .map(name => caches.delete(name))
+      )
+    )
   );
 });
