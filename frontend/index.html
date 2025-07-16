@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MQTT Chat">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <title>MQTT Chat</title>
+  <title>Meesa WA</title>
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -84,7 +84,7 @@
   </style>
 </head>
 <body>
-  <h2>MQTT Web Chat</h2>
+  <h2>Meesa</h2>
   <div id="login">
     <input id="username" placeholder="Enter your username" />
     <input id="room" placeholder="Room (e.g. general)" />
@@ -100,7 +100,7 @@
   </div>
 
   <script>
-    const baseTopic = 'chat/naghamfriend';
+    const baseTopic = 'chat/MushRoom';
     let client, username = '', room = '', typingTimeout;
 
     function startChat() {
@@ -114,7 +114,11 @@
       document.getElementById('inputArea').style.display = 'flex';
 
       loadHistory();
-      client = mqtt.connect('wss://test.mosquitto.org:8081');
+     client = mqtt.connect('wss://241024dacc644661b296a5b1b68f1390.s1.eu.hivemq.cloud:8884/mqtt', {
+    username: 'Meesa',
+    password: 'MeesaPassword42'
+});
+
 
       client.on('connect', () => {
         console.log('MQTT connected');
