@@ -1,6 +1,6 @@
 {
-  "name": "MQTT Chat App",
-  "short_name": "MQTTChat",
+  "name": "Meesa Chat App",
+  "short_name": "Meesa",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#1e1e1e",

@@ -10,17 +10,18 @@ const {
   MQTT_TOPIC
 } = process.env;
 
-const client = mqtt.connect(MQTT_URL, {
-  username: MQTT_USERNAME,
-  password: MQTT_PASSWORD,
+const client = mqtt.connect(process.env.MQTT_UR, {
+  username: process.env.MQTT_USERNAME,
+  password: process.env.MQTT_PASSWORD,
   protocol: 'wss',
   reconnectPeriod: 1000
 });
 
 client.on('connect', () => {
-  console.log('✅ Connected to MQTT broker');
-  client.subscribe(MQTT_TOPIC, (err) => {
-    if (err) console.error('❌ Subscribe error:', err.message);
+  console.log('✅ Connected to HiveMQ');
+  client.subscribe(process.env.MQTT_TOPIC, (err) => {
+    if (err) console.error('❌ Subscription error:', err);
+    else console.log(`✅ Subscribed to ${process.env.MQTT_TOPIC}`);
   });
 });
 
