@@ -10,7 +10,7 @@ const {
   MQTT_TOPIC
 } = process.env;
 
-const client = mqtt.connect(process.env.MQTT_UR, {
+const client = mqtt.connect(process.env.MQTT_URL, {
   username: process.env.MQTT_USERNAME,
   password: process.env.MQTT_PASSWORD,
   protocol: 'wss',
