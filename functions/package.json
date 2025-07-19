@@ -1,19 +1,14 @@
 {
-  "name": "mqtt-backend-bridge",
+  "name": "meesa-functions",
   "version": "1.0.0",
-  "description": "MQTT to SQLite bridge with Firebase notifications",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
+  "main": "index.js",
+  "engines": {
+    "node": "20"
   },
   "dependencies": {
-    "dotenv": "^16.6.1",
     "firebase-admin": "^11.11.1",
+    "firebase-functions": "^4.6.1",
     "mqtt": "^5.13.3",
     "sqlite3": "^5.1.7"
-  },
-"engines": {
-  "node": "18"
-}
-
+  }
 }

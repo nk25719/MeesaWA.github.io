@@ -42,7 +42,7 @@ client.on("message", async (topic, message) => {
 
     saveMessage({ id, username, room, message: text, timestamp });
 
-    const dummyUserToken = process.env.FIREBASE_SERVER_KEY || "FCM_DEVICE_TOKEN_HERE";
+    const dummyUserToken = process.env.SERVER_KEY || "FCM_DEVICE_TOKEN_HERE";
     await admin.messaging().send({
       notification: { title: `New message from ${username}`, body: text },
       token: dummyUserToken
