@@ -1,10 +1,13 @@
 {
   "name": "Meesa Chat App",
   "short_name": "Meesa",
-  "start_url": "https://github.com/nk25719/MeesaWA.github.io/blob/main/frontend/index.html",
+  "start_url": "MeesaWA.github.io/frontend/index.html",
   "display": "standalone",
   "background_color": "#1e1e1e",
   "theme_color": "#007acc",
+  "display_override": ["standalone", "browser"],
+  "orientation": "portrait-primary",
+
   "icons": [
     {
       "src": "icon-192.png",
