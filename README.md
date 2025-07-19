@@ -29,7 +29,6 @@ meesa-pwa/
 ├── README.md                    # Project documentation
 ├── firebase.json               # Firebase hosting config
 ├── .firebaserc                 # Firebase project config
-├── package.json                # Backend dependencies
 ├── mqtt-messages.db            # Local SQLite DB
 ├── public/                     # Frontend (PWA)
 │   ├── index.html
@@ -39,10 +38,13 @@ meesa-pwa/
 │   ├── icon-512.png
 │   ├── splash.png
 │   └── firebase-messaging-sw.js
-├── backend/                    # Node.js MQTT + Firebase bridge
+├── functions/                    # Node.js MQTT + Firebase bridge
+│   ├── .env
+│   ├── package.json                # Backend dependencies
 │   ├── server.js
 │   ├── db.js
 │   ├── firebase.js
+│   ├── index.js
 │   └── serviceAccountKey.json
 
 ```
