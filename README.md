@@ -26,19 +26,27 @@ A real-time, installable, offline-capable chat application built with MQTT, Fire
 
 ```
 meesa-pwa/
-├── public/
-│   ├── index.html                  # Main frontend interface
-│   ├── sw.js                       # Service worker with caching
-│   ├── manifest.json              # PWA config
-│   ├── firebase-messaging-sw.js   # Firebase background handler
+├── README.md                    # Project documentation
+├── firebase.json               # Firebase hosting config
+├── .firebaserc                 # Firebase project config
+├── package.json                # Backend dependencies
+├── mqtt-messages.db            # Local SQLite DB
+├── public/                     # Frontend (PWA)
+│   ├── index.html
+│   ├── sw.js
+│   ├── manifest.json
 │   ├── icon-192.png
 │   ├── icon-512.png
-│   └── splash.png
-├── firebase.json                  # Firebase hosting config
-├── .firebaserc                    # Firebase project mapping
-```
+│   ├── splash.png
+│   └── firebase-messaging-sw.js
+├── backend/                    # Node.js MQTT + Firebase bridge
+│   ├── server.js
+│   ├── db.js
+│   ├── firebase.js
+│   └── serviceAccountKey.json
 
----
+```
+ 
 
 ## 🚀 Deploying to Firebase
 
