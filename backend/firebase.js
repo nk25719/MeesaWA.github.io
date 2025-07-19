@@ -3,6 +3,13 @@ const serviceAccount = require('./serviceAccountKey.json');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
+   
+  "hosting": {
+    "site": "meesa-wa",
+
+    "public": "public",
+     
+}
 });
 
 const sendNotification = async (title, body, token) => {

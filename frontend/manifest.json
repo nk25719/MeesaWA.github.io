@@ -1,7 +1,7 @@
 {
   "name": "Meesa Chat App",
   "short_name": "Meesa",
-  "start_url": "./index.html",
+  "start_url": "https://github.com/nk25719/MeesaWA.github.io/blob/main/frontend/index.html",
   "display": "standalone",
   "background_color": "#1e1e1e",
   "theme_color": "#007acc",

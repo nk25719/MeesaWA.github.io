@@ -9,6 +9,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MQTT Chat">
   <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
+  <link rel="apple-touch-startup-image" href="splash.png">
+
   <title>Meesa WA</title>
 
   <!-- Firebase SDKs -->
@@ -118,6 +121,16 @@
     username: 'Meesa',
     password: 'MeesaPassword42'
 });
+      const firebaseConfig = {
+        apiKey: "AIzaSyD...abc",
+        authDomain: "meesa-6cc00.firebaseapp.com",
+        projectId: "meesa-6cc00",
+        storageBucket: "meesa-6cc00.appspot.com",
+        messagingSenderId: "123456789012",
+        appId: "1:123456789012:web:abc123def456"
+      };
+
+      firebase.initializeApp(firebaseConfig);
 
 
       client.on('connect', () => {
@@ -236,6 +249,15 @@
       document.getElementById('joinBtn').addEventListener('click', startChat);
       document.getElementById('joinBtn').addEventListener('touchstart', startChat);
     });
+
+    if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(() => {
+    console.log('✅ Service Worker registered');
+  }).catch(err => {
+    console.error('❌ Service Worker registration failed:', err);
+  });
+}
+
   </script>
 </body>
 </html>
