@@ -1,0 +1,24 @@
+# --- GENERAL NODE PROJECT FILES ---
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# --- ENV & SECRETS ---
+.env
+serviceAccountKey.json
+mqtt-messages.db
+
+# --- FIREBASE FUNCTIONS ---
+functions/node_modules/
+functions/.env
+functions/serviceAccountKey.json
+
+# --- OS/EDITOR FILES ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# --- FIREBASE DEPLOY FILES ---
+.firebaserc
+firebase-debug.log
