@@ -6,9 +6,9 @@
     "node": "20"
   },
   "dependencies": {
+    "firebase-functions": "^4.4.1",
     "firebase-admin": "^11.11.1",
-    "firebase-functions": "^4.6.1",
     "mqtt": "^5.13.3",
-    "sqlite3": "^5.1.7"
+    "dotenv": "^17.2.0"
   }
 }
