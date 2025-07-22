@@ -98,30 +98,32 @@
     });
 
     function startChat() {
-      document.getElementById('chat').style.display = 'block';
-      document.getElementById('inputArea').style.display = 'flex';
+  document.getElementById('chat').style.display = 'block';
+  document.getElementById('inputArea').style.display = 'flex';
+  clearChatTerminal(); // 🧽 clear chat for this session
 
-      client = mqtt.connect('wss://241024dacc644661b296a5b1b68f1390.s1.eu.hivemq.cloud:8884/mqtt', {
-        username: 'Meesa',
-        password: 'MeesaPassword42'
-      });
+  client = mqtt.connect('wss://241024dacc644661b296a5b1b68f1390.s1.eu.hivemq.cloud:8884/mqtt', {
+    username: 'Meesa',
+    password: 'MeesaPassword42'
+  });
 
-      client.on('connect', () => {
-        client.subscribe(`chat/${room}/public`);
-        appendMessage(`✅ Connected as ${username} in #${room}`, 'system');
-      });
+  client.on('connect', () => {
+    client.subscribe(`chat/${room}/public`);
+    appendMessage(`✅ Connected as ${username} in #${room}`, 'system');
+    loadRoomHistory();  // ⬅️ fetch previous messages
+  });
 
-      client.on('message', (topic, message) => {
-        const payload = JSON.parse(message.toString());
-        if (topic.includes('/direct/')) {
-          const sender = payload.senderId === currentUserUid ? "You" : payload.username;
-          appendMessage(`🔒 ${sender}: ${payload.text}`, 'private', payload.timestamp);
-        } else if (topic.endsWith('/public')) {
-          if (payload.username === username) return;
-          appendMessage(`${payload.username}: ${payload.text}`, 'other', payload.timestamp);
-        }
-      });
+  client.on('message', (topic, message) => {
+    const payload = JSON.parse(message.toString());
+    if (topic.includes('/direct/')) {
+      const sender = payload.senderId === currentUserUid ? "You" : payload.username;
+      appendMessage(`🔒 ${sender}: ${payload.text}`, 'private', payload.timestamp);
+    } else if (topic.endsWith('/public')) {
+      if (payload.username === username) return;
+      appendMessage(`${payload.username}: ${payload.text}`, 'other', payload.timestamp);
     }
+  });
+}
 
     async function startDirectChat() {
       recipientUid = document.getElementById('recipientUid').value.trim();
@@ -133,6 +135,21 @@
       await getOrCreateConversation(currentUserUid, recipientUid);
       appendMessage(`💬 Direct chat started with ${recipientUid}`, 'system');
     }
+
+    function loadRoomHistory() {
+  db.collection("messages")
+    .where("room", "==", room)
+    .orderBy("timestamp")
+    .limit(50)
+    .get()
+    .then(snapshot => {
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const type = data.username === username ? 'you' : 'other';
+        appendMessage(`${data.username}: ${data.text}`, type, data.timestamp);
+      });
+    }).catch(console.error);
+}
 
     function sendMessage() {
       const msg = document.getElementById('message').value.trim();
