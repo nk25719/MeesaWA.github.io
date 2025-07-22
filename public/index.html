@@ -149,20 +149,20 @@
     }
 
     function sendMessage() {
-      const msg = document.getElementById('message').value.trim();
-      if (!msg) return;
-      const displayTime = new Date();  // for UI only
-      const id = 'msg_' + Date.now();
-      document.getElementById('message').value = '';
+    const text = document.getElementById('message').value.trim();
+    if (!text) return;
+    document.getElementById('message').value = '';
 
-      client.publish(`${baseTopic}/${room}/public`, JSON.stringify({ username, text: msg, timestamp: displayTime.toISOString(), id }));
-      appendMessage(`${username}: ${msg}`, 'you', displayTime);
+    db.collection("conversations").doc(convoId)
+      .collection("messages")
+      .add({
+        senderId: currentUserUid,
+        content: text,
+        timestamp: new Date(),
+        read: false
+      });
+  }
 
-      db.collection("messages").doc(id).set({
-        id, username, room, text: msg,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      }).catch(console.error);
-    }
 
     function appendMessage(text, type = 'other', timestamp = null) {
       const chat = document.getElementById('chat');
