@@ -7,7 +7,7 @@ const serviceAccount = require("./serviceAccountKey.json");
 admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 
 const { sendNotification } = require('./firebase');
-await sendNotification(`New message from ${username}`, text, recipientToken);
+// Removed invalid top-level await sendNotification(...)
 
 const MQTT_URL = process.env.MQTT_URL;
 const MQTT_USERNAME = process.env.MQTT_USERNAME;
@@ -41,7 +41,6 @@ client.on("message", async (topic, message) => {
     const topicParts = topic.split("/");
 
     if (topicParts[1] === "MushRoom") {
-      // ✅ Room message
       const room = topicParts[2];
 
       await admin.firestore().collection("messages").doc(id).set({
@@ -53,7 +52,6 @@ client.on("message", async (topic, message) => {
 
       console.log(`✅ Room message saved to /messages/${id}`);
 
-      // Optional: broadcast notification (replace with real token)
       const dummyToken = "FCM_DEVICE_TOKEN_HERE";
       await admin.messaging().send({
         notification: { title: `New message from ${username}`, body: text },
@@ -61,15 +59,13 @@ client.on("message", async (topic, message) => {
       });
 
     } else if (topicParts[1] === "direct") {
-      // ✅ Direct message
       const convoId = topicParts[2];
       const senderId = convoId.split("_").includes(data.senderId)
         ? data.senderId
-        : convoId.split("_")[0]; // fallback if missing
+        : convoId.split("_")[0];
 
       const convoRef = admin.firestore().collection("conversations").doc(convoId);
 
-      // Store message
       await convoRef.collection("messages").doc(id).set({
         senderId,
         content: text,
@@ -77,7 +73,6 @@ client.on("message", async (topic, message) => {
         read: false
       });
 
-      // Update convo metadata
       await convoRef.set({
         participants: convoId.split("_"),
         lastMessage: text,
@@ -87,7 +82,6 @@ client.on("message", async (topic, message) => {
 
       console.log(`✅ DM saved to /conversations/${convoId}/messages/${id}`);
 
-      // 🔔 Optional: lookup recipient token and send notification
       const recipientId = convoId.split("_").find(uid => uid !== senderId);
       const userSnap = await admin.firestore().collection("users").doc(recipientId).get();
       const fcmToken = userSnap.data()?.fcmToken;
@@ -111,16 +105,9 @@ client.on("message", async (topic, message) => {
   }
 });
 
-// exports.mqttBridge = functions.runWith({ timeoutSeconds: 540 }).pubsub
-//   .schedule("every 5 minutes")
-//   .onRun((context) => {
-//     console.log("⏱ MQTT bridge running");
-//     return null;
-//   });
 exports.mqttBridge = functions.pubsub
   .schedule("every 5 minutes")
   .onRun((context) => {
     console.log("⏱ MQTT bridge running");
     return null;
   });
-

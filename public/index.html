@@ -51,6 +51,7 @@
 
   <div id="login">
     <input id="room" placeholder="Room (e.g. general)" />
+    <input id="peer" placeholder="Username to DM (optional)" />
     <button id="googleSignIn">Sign in with Google</button>
   </div>
 
@@ -80,6 +81,7 @@
 
     const baseTopic = 'chat';
     let client, username = '', room = '';
+    let convoId = '', currentUserUid = '', peerUid = '';
 
     document.getElementById('googleSignIn').addEventListener('click', () => {
       room = document.getElementById('room').value.trim() || 'general';
@@ -87,6 +89,9 @@
       auth.signInWithPopup(provider)
         .then(result => {
           username = result.user.displayName || result.user.email.split('@')[0];
+          currentUserUid = result.user.uid;
+          peerUid = document.getElementById('peer').value.trim();
+          convoId = [currentUserUid, peerUid].sort().join('_');
           document.getElementById('login').style.display = 'none';
           document.getElementById('logoutBtn').style.display = 'inline';
           startChat();
@@ -101,6 +106,7 @@
       document.getElementById('chat').style.display = 'block';
       document.getElementById('inputArea').style.display = 'flex';
       loadHistory();
+      if (peerUid) loadDirectMessages();
 
       client = mqtt.connect('wss://241024dacc644661b296a5b1b68f1390.s1.eu.hivemq.cloud:8884/mqtt', {
         username: 'Meesa',
@@ -171,6 +177,24 @@
     function handleKey(event) {
       if (event.key === 'Enter') sendMessage();
     }
+
+    
+    function loadDirectMessages() {
+      db.collection("conversations")
+        .doc(convoId)
+        .collection("messages")
+        .orderBy("timestamp", "asc")
+        .onSnapshot(snapshot => {
+          snapshot.docChanges().forEach(change => {
+            if (change.type === "added") {
+              const data = change.doc.data();
+              const type = data.senderId === currentUserUid ? 'you' : 'other';
+              appendMessage(`${data.senderId}: ${data.content}`, type, data.timestamp?.toDate?.());
+            }
+          });
+        });
+    }
+
 
     function clearChatTerminal() {
       document.getElementById('chat').innerHTML = '';
