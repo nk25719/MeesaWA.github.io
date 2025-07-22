@@ -1,7 +1,8 @@
 // directMessages.js
 
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/firestore';
+// import firebase from 'firebase/compat/app';
+// import 'firebase/compat/firestore';
+const db = firebase.firestore();
 
 // Generate consistent conversation ID
 export function generateConversationId(uid1, uid2) {
