@@ -63,130 +63,132 @@
   <script type="module">
     import { getOrCreateConversation, sendDirectMessage } from '/js/directMessages.js';
 
-    let client, username = '', room = '', db;
-    let isDirect = false, recipientUid = '', currentUserUid = '', currentConvoId = '';
+    window.addEventListener('DOMContentLoaded', () => {
+      let client, username = '', room = '', db;
+      let isDirect = false, recipientUid = '', currentUserUid = '', currentConvoId = '';
 
-    firebase.initializeApp({
-      apiKey: "AIzaSyCg6xi0_Kx7uX6Nc4t6B-4nwukCgo5LT4k",
-      authDomain: "meesa-6cc00.firebaseapp.com",
-      projectId: "meesa-6cc00",
-      storageBucket: "meesa-6cc00.appspot.com",
-      messagingSenderId: "648709826389",
-      appId: "1:648709826389:web:3ff56515d746cabcccb1dc",
-      measurementId: "G-DNKFWFJR36"
-    });
-
-    const auth = firebase.auth();
-    db = firebase.firestore();
-
-    document.getElementById('googleSignIn').addEventListener('click', () => {
-      room = document.getElementById('room').value.trim() || 'general';
-      const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider)
-        .then(result => {
-          username = result.user.displayName || result.user.email.split('@')[0];
-          currentUserUid = result.user.uid;
-          document.getElementById('login').style.display = 'none';
-          document.getElementById('logoutBtn').style.display = 'inline';
-          document.getElementById('dmArea').style.display = 'block';
-          startChat();
-        }).catch(err => alert("Login failed: " + err.message));
-    });
-
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      firebase.auth().signOut().then(() => location.reload());
-    });
-
-    function startChat() {
-  document.getElementById('chat').style.display = 'block';
-  document.getElementById('inputArea').style.display = 'flex';
-  clearChatTerminal(); // 🧽 clear chat for this session
-
-  client = mqtt.connect('wss://241024dacc644661b296a5b1b68f1390.s1.eu.hivemq.cloud:8884/mqtt', {
-    username: 'Meesa',
-    password: 'MeesaPassword42'
-  });
-
-  client.on('connect', () => {
-    client.subscribe(`chat/${room}/public`);
-    appendMessage(`✅ Connected as ${username} in #${room}`, 'system');
-    loadRoomHistory();  // ⬅️ fetch previous messages
-  });
-
-  client.on('message', (topic, message) => {
-    const payload = JSON.parse(message.toString());
-    if (topic.includes('/direct/')) {
-      const sender = payload.senderId === currentUserUid ? "You" : payload.username;
-      appendMessage(`🔒 ${sender}: ${payload.text}`, 'private', payload.timestamp);
-    } else if (topic.endsWith('/public')) {
-      if (payload.username === username) return;
-      appendMessage(`${payload.username}: ${payload.text}`, 'other', payload.timestamp);
-    }
-  });
-}
-
-    async function startDirectChat() {
-      recipientUid = document.getElementById('recipientUid').value.trim();
-      if (!recipientUid) return alert("Recipient UID is required");
-      const convoId = [currentUserUid, recipientUid].sort().join('_');
-      currentConvoId = convoId;
-      isDirect = true;
-      client.subscribe(`chat/direct/${convoId}`);
-      await getOrCreateConversation(currentUserUid, recipientUid);
-      appendMessage(`💬 Direct chat started with ${recipientUid}`, 'system');
-    }
-
-    function loadRoomHistory() {
-  db.collection("messages")
-    .where("room", "==", room)
-    .orderBy("timestamp")
-    .limit(50)
-    .get()
-    .then(snapshot => {
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const type = data.username === username ? 'you' : 'other';
-        appendMessage(`${data.username}: ${data.text}`, type, data.timestamp);
+      firebase.initializeApp({
+        apiKey: "AIzaSyCg6xi0_Kx7uX6Nc4t6B-4nwukCgo5LT4k",
+        authDomain: "meesa-6cc00.firebaseapp.com",
+        projectId: "meesa-6cc00",
+        storageBucket: "meesa-6cc00.appspot.com",
+        messagingSenderId: "648709826389",
+        appId: "1:648709826389:web:3ff56515d746cabcccb1dc",
+        measurementId: "G-DNKFWFJR36"
       });
-    }).catch(console.error);
-}
 
-    function sendMessage() {
-      const msg = document.getElementById('message').value.trim();
-      if (!msg) return;
-      const timestamp = new Date().toISOString();
-      const id = 'msg_' + Date.now();
-      document.getElementById('message').value = '';
+      const auth = firebase.auth();
+      db = firebase.firestore();
 
-      if (isDirect && currentConvoId) {
-        const topic = `chat/direct/${currentConvoId}`;
-        client.publish(topic, JSON.stringify({ id, text: msg, timestamp, senderId: currentUserUid, username }));
-        appendMessage(`You ➤ ${recipientUid}: ${msg}`, 'you', timestamp);
-      } else {
-        const topic = `chat/${room}/public`;
-        client.publish(topic, JSON.stringify({ id, username, text: msg, timestamp }));
-        appendMessage(`${username}: ${msg}`, 'you', timestamp);
-        db.collection("messages").doc(id).set({ id, username, room, text: msg, timestamp }).catch(console.error);
+      document.getElementById('googleSignIn').addEventListener('click', () => {
+        room = document.getElementById('room').value.trim() || 'general';
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider)
+          .then(result => {
+            username = result.user.displayName || result.user.email.split('@')[0];
+            currentUserUid = result.user.uid;
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'inline';
+            document.getElementById('dmArea').style.display = 'block';
+            startChat();
+          }).catch(err => alert("Login failed: " + err.message));
+      });
+
+      document.getElementById('logoutBtn').addEventListener('click', () => {
+        firebase.auth().signOut().then(() => location.reload());
+      });
+
+      function startChat() {
+        document.getElementById('chat').style.display = 'block';
+        document.getElementById('inputArea').style.display = 'flex';
+        clearChatTerminal();
+
+        client = mqtt.connect('wss://241024dacc644661b296a5b1b68f1390.s1.eu.hivemq.cloud:8884/mqtt', {
+          username: 'Meesa',
+          password: 'MeesaPassword42'
+        });
+
+        client.on('connect', () => {
+          client.subscribe(`chat/${room}/public`);
+          appendMessage(`✅ Connected as ${username} in #${room}`, 'system');
+          loadRoomHistory();
+        });
+
+        client.on('message', (topic, message) => {
+          const payload = JSON.parse(message.toString());
+          if (topic.includes('/direct/')) {
+            const sender = payload.senderId === currentUserUid ? "You" : payload.username;
+            appendMessage(`🔒 ${sender}: ${payload.text}`, 'private', payload.timestamp);
+          } else if (topic.endsWith('/public')) {
+            if (payload.username === username) return;
+            appendMessage(`${payload.username}: ${payload.text}`, 'other', payload.timestamp);
+          }
+        });
       }
-    }
 
-    function appendMessage(text, type = 'other', timestamp = null) {
-      const chat = document.getElementById('chat');
-      const p = document.createElement('p');
-      p.className = `message ${type}`;
-      const timeString = timestamp ? `<span class="timestamp">${new Date(timestamp).toLocaleTimeString()}</span>` : '';
-      p.innerHTML = `${text} ${timeString}`;
-      chat.appendChild(p);
-      chat.scrollTop = chat.scrollHeight;
-    }
+      async function startDirectChat() {
+        recipientUid = document.getElementById('recipientUid').value.trim();
+        if (!recipientUid) return alert("Recipient UID is required");
+        const convoId = [currentUserUid, recipientUid].sort().join('_');
+        currentConvoId = convoId;
+        isDirect = true;
+        client.subscribe(`chat/direct/${convoId}`);
+        await getOrCreateConversation(currentUserUid, recipientUid);
+        appendMessage(`💬 Direct chat started with ${recipientUid}`, 'system');
+      }
 
-    function handleKey(event) {
-      if (event.key === 'Enter') sendMessage();
-    }
+      function sendMessage() {
+        const msg = document.getElementById('message').value.trim();
+        if (!msg) return;
+        const timestamp = new Date().toISOString();
+        const id = 'msg_' + Date.now();
+        document.getElementById('message').value = '';
 
-    function clearChatTerminal() {
-      document.getElementById('chat').innerHTML = '';
-    }
+        if (isDirect && currentConvoId) {
+          const topic = `chat/direct/${currentConvoId}`;
+          client.publish(topic, JSON.stringify({ id, text: msg, timestamp, senderId: currentUserUid, username }));
+          appendMessage(`You ➤ ${recipientUid}: ${msg}`, 'you', timestamp);
+        } else {
+          const topic = `chat/${room}/public`;
+          client.publish(topic, JSON.stringify({ id, username, text: msg, timestamp }));
+          appendMessage(`${username}: ${msg}`, 'you', timestamp);
+          db.collection("messages").doc(id).set({ id, username, room, text: msg, timestamp }).catch(console.error);
+        }
+      }
+
+      function loadRoomHistory() {
+        db.collection("messages")
+          .where("room", "==", room)
+          .orderBy("timestamp")
+          .limit(50)
+          .get()
+          .then(snapshot => {
+            snapshot.forEach(doc => {
+              const data = doc.data();
+              const type = data.username === username ? 'you' : 'other';
+              appendMessage(`${data.username}: ${data.text}`, type, data.timestamp);
+            });
+          }).catch(console.error);
+      }
+
+      function appendMessage(text, type = 'other', timestamp = null) {
+        const chat = document.getElementById('chat');
+        const p = document.createElement('p');
+        p.className = `message ${type}`;
+        const timeString = timestamp ? `<span class="timestamp">${new Date(timestamp).toLocaleTimeString()}</span>` : '';
+        p.innerHTML = `${text} ${timeString}`;
+        chat.appendChild(p);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function handleKey(event) {
+        if (event.key === 'Enter') sendMessage();
+      }
+
+      function clearChatTerminal() {
+        document.getElementById('chat').innerHTML = '';
+      }
+    });
   </script>
 </body>
 </html>
