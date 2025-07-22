@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -22,7 +23,7 @@
         });
       }
     </script>
- 
+
   <style>
     body {
       font-family: sans-serif;
@@ -127,14 +128,15 @@
     function loadHistory() {
       db.collection("messages")
         .where("room", "==", room)
-        .orderBy("timestamp")
+        .where("timestamp", "!=", null)
+        .orderBy("timestamp", "asc")
         .limit(50)
         .onSnapshot(snapshot => {
           snapshot.docChanges().forEach(change => {
             if (change.type === "added") {
               const data = change.doc.data();
               const type = data.username === username ? 'you' : 'other';
-              appendMessage(`${data.username}: ${data.text}`, type, data.timestamp);
+              appendMessage(`${data.username}: ${data.text}`, type, data.timestamp?.toDate?.());
             }
           });
         });
@@ -143,15 +145,16 @@
     function sendMessage() {
       const msg = document.getElementById('message').value.trim();
       if (!msg) return;
-      const timestamp = new Date().toISOString();
+      const displayTime = new Date();  // for UI only
       const id = 'msg_' + Date.now();
       document.getElementById('message').value = '';
 
-      client.publish(`${baseTopic}/${room}/public`, JSON.stringify({ username, text: msg, timestamp, id }));
-      appendMessage(`${username}: ${msg}`, 'you', timestamp);
+      client.publish(`${baseTopic}/${room}/public`, JSON.stringify({ username, text: msg, timestamp: displayTime.toISOString(), id }));
+      appendMessage(`${username}: ${msg}`, 'you', displayTime);
 
       db.collection("messages").doc(id).set({
-        id, username, room, text: msg, timestamp
+        id, username, room, text: msg,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
       }).catch(console.error);
     }
 
