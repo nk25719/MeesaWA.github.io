@@ -35,22 +35,77 @@ client.on("message", async (topic, message) => {
     console.log("🧾 Raw payload:", message.toString());
 
     const data = JSON.parse(message.toString());
-    const [, room] = topic.split("/");
     const { id, username, text, timestamp } = data;
-    if (!id || !text) return;
+    if (!id || !text || !username) return;
 
-    await admin.firestore().collection("messages").doc(id).set({
-      username,
-      room,
-      message: text,
-      timestamp
-    });
+    const topicParts = topic.split("/");
 
-    const dummyUserToken = "FCM_DEVICE_TOKEN_HERE"; // Replace with real token
-    await admin.messaging().send({
-      notification: { title: `New message from ${username}`, body: text },
-      token: dummyUserToken
-    });
+    if (topicParts[1] === "MushRoom") {
+      // ✅ Room message
+      const room = topicParts[2];
+
+      await admin.firestore().collection("messages").doc(id).set({
+        username,
+        room,
+        message: text,
+        timestamp
+      });
+
+      console.log(`✅ Room message saved to /messages/${id}`);
+
+      // Optional: broadcast notification (replace with real token)
+      const dummyToken = "FCM_DEVICE_TOKEN_HERE";
+      await admin.messaging().send({
+        notification: { title: `New message from ${username}`, body: text },
+        token: dummyToken
+      });
+
+    } else if (topicParts[1] === "direct") {
+      // ✅ Direct message
+      const convoId = topicParts[2];
+      const senderId = convoId.split("_").includes(data.senderId)
+        ? data.senderId
+        : convoId.split("_")[0]; // fallback if missing
+
+      const convoRef = admin.firestore().collection("conversations").doc(convoId);
+
+      // Store message
+      await convoRef.collection("messages").doc(id).set({
+        senderId,
+        content: text,
+        timestamp: timestamp || new Date(),
+        read: false
+      });
+
+      // Update convo metadata
+      await convoRef.set({
+        participants: convoId.split("_"),
+        lastMessage: text,
+        lastSender: senderId,
+        updatedAt: new Date()
+      }, { merge: true });
+
+      console.log(`✅ DM saved to /conversations/${convoId}/messages/${id}`);
+
+      // 🔔 Optional: lookup recipient token and send notification
+      const recipientId = convoId.split("_").find(uid => uid !== senderId);
+      const userSnap = await admin.firestore().collection("users").doc(recipientId).get();
+      const fcmToken = userSnap.data()?.fcmToken;
+
+      if (fcmToken) {
+        await admin.messaging().send({
+          notification: {
+            title: `New DM from ${username}`,
+            body: text
+          },
+          token: fcmToken
+        });
+        console.log(`✅ DM Notification sent to ${recipientId}`);
+      } else {
+        console.warn(`⚠️ No FCM token for ${recipientId}`);
+      }
+    }
+
   } catch (err) {
     console.error("❌ Message handler error:", err.message);
   }
