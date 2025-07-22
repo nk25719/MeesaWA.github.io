@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#007acc">
   <title>Meesa WA</title>
 
-  <!-- Firebase SDKs (Compat) -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -13,17 +13,16 @@
   <!-- MQTT -->
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
-    <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then(reg => console.log("✅ Service Worker registered:", reg.scope))
-          .catch(err => console.error("❌ SW registration failed:", err));
-      });
-    }
-  </script>
-
-  
+  <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log("✅ Service Worker registered:", reg.scope))
+            .catch(err => console.error("❌ SW registration failed:", err));
+        });
+      }
+    </script>
+ 
   <style>
     body {
       font-family: sans-serif;
@@ -33,7 +32,7 @@
     }
     #chat { background: #2a2a2a; border: 1px solid #444; height: 40vh; overflow-y: auto; padding: 10px; margin-bottom: 10px; }
     input, button { font-size: 16px; }
-    #room, #message, #recipientUid { width: 100%; padding: 10px; margin: 5px 0; background: #333; color: #eee; border: none; border-radius: 4px; }
+    #room, #message { width: 100%; padding: 10px; margin: 5px 0; background: #333; color: #eee; border: none; border-radius: 4px; }
     #send, #clearChat, #logoutBtn { padding: 10px; margin: 5px 5px 5px 0; border: none; border-radius: 4px; cursor: pointer; }
     #send { background-color: #007acc; color: white; }
     #clearChat { background-color: crimson; color: white; }
@@ -54,11 +53,6 @@
     <button id="googleSignIn">Sign in with Google</button>
   </div>
 
-  <div id="dmArea" style="margin-top: 20px; display: none;">
-    <input id="recipientUid" placeholder="Enter recipient UID">
-    <button onclick="startDirectChat()">Start Direct Chat</button>
-  </div>
-
   <button id="logoutBtn" style="display:none;">Sign Out</button>
 
   <div id="chat" style="display: none;"></div>
@@ -68,135 +62,116 @@
     <button id="clearChat" onclick="clearChatTerminal()">Clear</button>
   </div>
 
-  <script type="module">
-    import { getOrCreateConversation, sendDirectMessage } from '/js/directMessages.js';
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCg6xi0_Kx7uX6Nc4t6B-4nwukCgo5LT4k",
+      authDomain: "meesa-6cc00.firebaseapp.com",
+      projectId: "meesa-6cc00",
+      storageBucket: "meesa-6cc00.appspot.com",
+      messagingSenderId: "648709826389",
+      appId: "1:648709826389:web:3ff56515d746cabcccb1dc",
+      measurementId: "G-DNKFWFJR36"
+    };
 
-    window.addEventListener('DOMContentLoaded', () => {
-      let client, username = '', room = '', db;
-      let isDirect = false, recipientUid = '', currentUserUid = '', currentConvoId = '';
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-      firebase.initializeApp({
-        apiKey: "AIzaSyCg6xi0_Kx7uX6Nc4t6B-4nwukCgo5LT4k",
-        authDomain: "meesa-wa.web.app",
-        projectId: "meesa-6cc00",
-        storageBucket: "meesa-6cc00.appspot.com",
-        messagingSenderId: "648709826389",
-        appId: "1:648709826389:web:3ff56515d746cabcccb1dc",
-        measurementId: "G-DNKFWFJR36"
+    const baseTopic = 'chat/MushRoom';
+    let client, username = '', room = '';
+
+    document.getElementById('googleSignIn').addEventListener('click', () => {
+      room = document.getElementById('room').value.trim() || 'general';
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider)
+        .then(result => {
+          username = result.user.displayName || result.user.email.split('@')[0];
+          document.getElementById('login').style.display = 'none';
+          document.getElementById('logoutBtn').style.display = 'inline';
+          startChat();
+        }).catch(err => alert("Login failed: " + err.message));
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      auth.signOut().then(() => location.reload());
+    });
+
+    function startChat() {
+      document.getElementById('chat').style.display = 'block';
+      document.getElementById('inputArea').style.display = 'flex';
+      loadHistory();
+
+      client = mqtt.connect('wss://241024dacc644661b296a5b1b68f1390.s1.eu.hivemq.cloud:8884/mqtt', {
+        username: 'Meesa',
+        password: 'MeesaPassword42'
       });
 
-      const auth = firebase.auth();
-      db = firebase.firestore();
-
-      document.getElementById('googleSignIn').addEventListener('click', () => {
-        room = document.getElementById('room').value.trim() || 'general';
-        const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider)
-          .then(result => {
-            username = result.user.displayName || result.user.email.split('@')[0];
-            currentUserUid = result.user.uid;
-            document.getElementById('login').style.display = 'none';
-            document.getElementById('logoutBtn').style.display = 'inline';
-            document.getElementById('dmArea').style.display = 'block';
-            startChat();
-          }).catch(err => alert("Login failed: " + err.message));
+      client.on('connect', () => {
+        client.subscribe(`${baseTopic}/${room}/public`);
+        client.subscribe(`${baseTopic}/${room}/private/${username}`);
+        client.subscribe(`${baseTopic}/${room}/presence`);
+        appendMessage(`✅ Connected as ${username} in #${room}`, 'system');
       });
 
-      document.getElementById('logoutBtn').addEventListener('click', () => {
-        firebase.auth().signOut().then(() => location.reload());
-      });
-
-      function startChat() {
-        document.getElementById('chat').style.display = 'block';
-        document.getElementById('inputArea').style.display = 'flex';
-        clearChatTerminal();
-
-        client = mqtt.connect('wss://241024dacc644661b296a5b1b68f1390.s1.eu.hivemq.cloud:8884/mqtt', {
-          username: 'Meesa',
-          password: 'MeesaPassword42'
-        });
-
-        client.on('connect', () => {
-          client.subscribe(`chat/${room}/public`);
-          appendMessage(`✅ Connected as ${username} in #${room}`, 'system');
-          loadRoomHistory();
-        });
-
-        client.on('message', (topic, message) => {
-          const payload = JSON.parse(message.toString());
-          if (topic.includes('/direct/')) {
-            const sender = payload.senderId === currentUserUid ? "You" : payload.username;
-            appendMessage(`🔒 ${sender}: ${payload.text}`, 'private', payload.timestamp);
-          } else if (topic.endsWith('/public')) {
-            if (payload.username === username) return;
-            appendMessage(`${payload.username}: ${payload.text}`, 'other', payload.timestamp);
-          }
-        });
-      }
-
-      async function startDirectChat() {
-        recipientUid = document.getElementById('recipientUid').value.trim();
-        if (!recipientUid) return alert("Recipient UID is required");
-        const convoId = [currentUserUid, recipientUid].sort().join('_');
-        currentConvoId = convoId;
-        isDirect = true;
-        client.subscribe(`chat/direct/${convoId}`);
-        await getOrCreateConversation(currentUserUid, recipientUid);
-        appendMessage(`💬 Direct chat started with ${recipientUid}`, 'system');
-      }
-
-      function sendMessage() {
-        const msg = document.getElementById('message').value.trim();
-        if (!msg) return;
-        const timestamp = new Date().toISOString();
-        const id = 'msg_' + Date.now();
-        document.getElementById('message').value = '';
-
-        if (isDirect && currentConvoId) {
-          const topic = `chat/direct/${currentConvoId}`;
-          client.publish(topic, JSON.stringify({ id, text: msg, timestamp, senderId: currentUserUid, username }));
-          appendMessage(`You ➤ ${recipientUid}: ${msg}`, 'you', timestamp);
-        } else {
-          const topic = `chat/${room}/public`;
-          client.publish(topic, JSON.stringify({ id, username, text: msg, timestamp }));
-          appendMessage(`${username}: ${msg}`, 'you', timestamp);
-          db.collection("messages").doc(id).set({ id, username, room, text: msg, timestamp }).catch(console.error);
+      client.on('message', (topic, message) => {
+        const payload = JSON.parse(message.toString());
+        if (topic.endsWith('/public')) {
+          if (payload.username === username) return;
+          appendMessage(`${payload.username}: ${payload.text}`, 'other', payload.timestamp);
+        } else if (topic.endsWith(`/private/${username}`)) {
+          appendMessage(`🔒 ${payload.username} ➤ you: ${payload.text}`, 'private', payload.timestamp);
         }
-      }
+      });
+    }
 
-      function loadRoomHistory() {
-        db.collection("messages")
-          .where("room", "==", room)
-          .orderBy("timestamp")
-          .limit(50)
-          .get()
-          .then(snapshot => {
-            snapshot.forEach(doc => {
-              const data = doc.data();
+    function loadHistory() {
+      db.collection("messages")
+        .where("room", "==", room)
+        .orderBy("timestamp")
+        .limit(50)
+        .onSnapshot(snapshot => {
+          snapshot.docChanges().forEach(change => {
+            if (change.type === "added") {
+              const data = change.doc.data();
               const type = data.username === username ? 'you' : 'other';
               appendMessage(`${data.username}: ${data.text}`, type, data.timestamp);
-            });
-          }).catch(console.error);
-      }
+            }
+          });
+        });
+    }
 
-      function appendMessage(text, type = 'other', timestamp = null) {
-        const chat = document.getElementById('chat');
-        const p = document.createElement('p');
-        p.className = `message ${type}`;
-        const timeString = timestamp ? `<span class="timestamp">${new Date(timestamp).toLocaleTimeString()}</span>` : '';
-        p.innerHTML = `${text} ${timeString}`;
-        chat.appendChild(p);
-        chat.scrollTop = chat.scrollHeight;
-      }
+    function sendMessage() {
+      const msg = document.getElementById('message').value.trim();
+      if (!msg) return;
+      const timestamp = new Date().toISOString();
+      const id = 'msg_' + Date.now();
+      document.getElementById('message').value = '';
 
-      function handleKey(event) {
-        if (event.key === 'Enter') sendMessage();
-      }
+      client.publish(`${baseTopic}/${room}/public`, JSON.stringify({ username, text: msg, timestamp, id }));
+      appendMessage(`${username}: ${msg}`, 'you', timestamp);
 
-      function clearChatTerminal() {
-        document.getElementById('chat').innerHTML = '';
-      }
-    });
+      db.collection("messages").doc(id).set({
+        id, username, room, text: msg, timestamp
+      }).catch(console.error);
+    }
+
+    function appendMessage(text, type = 'other', timestamp = null) {
+      const chat = document.getElementById('chat');
+      const p = document.createElement('p');
+      p.className = `message ${type}`;
+      const timeString = timestamp ? `<span class="timestamp">${new Date(timestamp).toLocaleTimeString()}</span>` : '';
+      p.innerHTML = `${text} ${timeString}`;
+      chat.appendChild(p);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function handleKey(event) {
+      if (event.key === 'Enter') sendMessage();
+    }
+
+    function clearChatTerminal() {
+      document.getElementById('chat').innerHTML = '';
+    }
   </script>
 </body>
 </html>
