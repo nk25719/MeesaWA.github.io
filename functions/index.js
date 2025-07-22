@@ -40,8 +40,8 @@ client.on("message", async (topic, message) => {
 
     const topicParts = topic.split("/");
 
-    if (topicParts[1] === "MushRoom") {
-      const room = topicParts[2];
+      if (topicParts[0] === "chat" && topicParts[2] === "public") {
+    const room = topicParts[1];
 
       await admin.firestore().collection("messages").doc(id).set({
         username,
@@ -58,8 +58,8 @@ client.on("message", async (topic, message) => {
         token: dummyToken
       });
 
-    } else if (topicParts[1] === "direct") {
-      const convoId = topicParts[2];
+    } else if (topicParts[0] === "direct") {
+      const convoId = topicParts[1];
       const senderId = convoId.split("_").includes(data.senderId)
         ? data.senderId
         : convoId.split("_")[0];
