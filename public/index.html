@@ -13,6 +13,9 @@
   <!-- MQTT -->
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
+  <!-- PWA frontend -->
+  <script src="/js/directMessages.js" type="module"></script>
+
   <style>
     body {
       font-family: sans-serif;
@@ -41,6 +44,10 @@
   <div id="login">
     <input id="room" placeholder="Room (e.g. general)" />
     <button id="googleSignIn">Sign in with Google</button>
+  </div>
+  <div id="directMsgPanel" style="margin-top: 20px;">
+    <input id="dmUserId" placeholder="Enter recipient UID">
+    <button onclick="startDirectMessage()">Start DM</button>
   </div>
 
   <button id="logoutBtn" style="display:none;">Sign Out</button>
@@ -171,6 +178,30 @@
     function clearChatTerminal() {
       document.getElementById('chat').innerHTML = '';
     }
+
+      const parts = topic.split("/");
+    if (parts[1] === "room") {
+      const room = parts[2];
+      // Save room message to /messages/
+    } else if (parts[1] === "direct") {
+      const [uid1, uid2] = parts[2].split("_");
+      const convoId = [uid1, uid2].sort().join("_");
+
+      await admin.firestore().collection("conversations").doc(convoId)
+        .collection("messages").doc(id).set({
+          senderId: uid1,
+          content: text,
+          timestamp: timestamp || new Date(),
+          read: false
+        });
+
+      await admin.firestore().collection("conversations").doc(convoId).update({
+        lastMessage: text,
+        lastSender: uid1,
+        updatedAt: new Date()
+      });
+    }
+    
   </script>
 </body>
 </html>
