@@ -78,7 +78,7 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    const baseTopic = 'chat/MushRoom';
+    const baseTopic = 'chat';
     let client, username = '', room = '';
 
     document.getElementById('googleSignIn').addEventListener('click', () => {
@@ -108,7 +108,7 @@
       });
 
       client.on('connect', () => {
-        client.subscribe(`${baseTopic}/${room}/public`);
+        client.subscribe(`${baseTopic}/chat/${room}/public`);
         client.subscribe(`${baseTopic}/${room}/private/${username}`);
         client.subscribe(`${baseTopic}/${room}/presence`);
         appendMessage(`✅ Connected as ${username} in #${room}`, 'system');

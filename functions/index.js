@@ -47,7 +47,7 @@ client.on("message", async (topic, message) => {
       await admin.firestore().collection("messages").doc(id).set({
         username,
         room,
-        message: text,
+        text: text,
         timestamp
       });
 
