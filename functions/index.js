@@ -7,7 +7,6 @@ const serviceAccount = require("./serviceAccountKey.json");
 admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 
 const { sendNotification } = require('./firebase');
-// Removed invalid top-level await sendNotification(...)
 
 const MQTT_URL = process.env.MQTT_URL;
 const MQTT_USERNAME = process.env.MQTT_USERNAME;
@@ -35,18 +34,19 @@ client.on("message", async (topic, message) => {
     console.log("🧾 Raw payload:", message.toString());
 
     const data = JSON.parse(message.toString());
-    const { id, username, text, timestamp } = data;
+    const { id, username, text, timestamp, senderId } = data;
     if (!id || !text || !username) return;
 
     const topicParts = topic.split("/");
 
-      if (topicParts[0] === "chat" && topicParts[2] === "public") {
-    const room = topicParts[1];
+    // ✅ Public room message: chat/<room>/public
+    if (topicParts[0] === "chat" && topicParts[2] === "public") {
+      const room = topicParts[1];
 
       await admin.firestore().collection("messages").doc(id).set({
         username,
         room,
-        text: text,
+        text,
         timestamp
       });
 
@@ -58,16 +58,17 @@ client.on("message", async (topic, message) => {
         token: dummyToken
       });
 
+    // ✅ Direct message: direct/<convoId>
     } else if (topicParts[0] === "direct") {
       const convoId = topicParts[1];
-      const senderId = convoId.split("_").includes(data.senderId)
-        ? data.senderId
+      const resolvedSenderId = convoId.split("_").includes(senderId)
+        ? senderId
         : convoId.split("_")[0];
 
       const convoRef = admin.firestore().collection("conversations").doc(convoId);
 
       await convoRef.collection("messages").doc(id).set({
-        senderId,
+        senderId: resolvedSenderId,
         content: text,
         timestamp: timestamp || new Date(),
         read: false
@@ -76,13 +77,13 @@ client.on("message", async (topic, message) => {
       await convoRef.set({
         participants: convoId.split("_"),
         lastMessage: text,
-        lastSender: senderId,
+        lastSender: resolvedSenderId,
         updatedAt: new Date()
       }, { merge: true });
 
       console.log(`✅ DM saved to /conversations/${convoId}/messages/${id}`);
 
-      const recipientId = convoId.split("_").find(uid => uid !== senderId);
+      const recipientId = convoId.split("_").find(uid => uid !== resolvedSenderId);
       const userSnap = await admin.firestore().collection("users").doc(recipientId).get();
       const fcmToken = userSnap.data()?.fcmToken;
 
@@ -98,6 +99,9 @@ client.on("message", async (topic, message) => {
       } else {
         console.warn(`⚠️ No FCM token for ${recipientId}`);
       }
+
+    } else {
+      console.warn("⚠️ Unrecognized topic structure:", topic);
     }
 
   } catch (err) {
