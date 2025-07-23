@@ -1,24 +1,21 @@
-// firebase.js (backend notification utility)
+// firebase.js (adjusted for Firebase-only logic, no MQTT)
 
-const admin = require('firebase-admin');
-const serviceAccount = require('./serviceAccountKey.json');
+import { initializeApp } from 'firebase/app';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 
-// ✅ Initialize Firebase Admin
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
-// ✅ Exported notification function
-const sendNotification = async (title, body, token) => {
-  try {
-    await admin.messaging().send({
-      notification: { title, body },
-      token,
-    });
-    console.log('✅ Notification sent to:', token);
-  } catch (error) {
-    console.error('❌ Failed to send notification:', error.message);
-  }
+const firebaseConfig = {
+  apiKey: "AIzaSyCg6xi0_Kx7uX6Nc4t6B-4nwukCgo5LT4k",
+  authDomain: "meesa-6cc00.firebaseapp.com",
+  projectId: "meesa-6cc00",
+  storageBucket: "meesa-6cc00.appspot.com",
+  messagingSenderId: "648709826389",
+  appId: "1:648709826389:web:3ff56515d746cabcccb1dc"
 };
 
-module.exports = { sendNotification };
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+export { auth, db, provider, signInWithPopup, signOut, collection, addDoc, query, where, orderBy, onSnapshot };

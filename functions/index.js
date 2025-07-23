@@ -1,117 +1,106 @@
-require("dotenv").config();
-const functions = require("firebase-functions");
-const mqtt = require("mqtt");
-const admin = require("firebase-admin");
+// index.js
+import { auth, provider, signInWithPopup, signOut, db, collection, query, onSnapshot, orderBy } from './firebase.js';
+import { getOrCreateConversation, sendDirectMessage, listenToDirectMessages } from './directMessages.js';
 
-const serviceAccount = require("./serviceAccountKey.json");
-admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+let currentUser = null;
+let convoId = null;
+let peerUid = '';
+let isPrivate = true;
+let typingTimeout = null;
 
-const { sendNotification } = require('./firebase');
+// DOM Elements
+const loginBtn = document.getElementById('googleSignIn');
+const logoutBtn = document.getElementById('logoutBtn');
+const peerSelect = document.getElementById('peerSelect');
+const togglePrivacy = document.getElementById('togglePrivacy');
+const messageInput = document.getElementById('message');
+const sendBtn = document.getElementById('send');
+const chatBox = document.getElementById('chat');
+const typingIndicator = document.getElementById('typingIndicator');
 
-const MQTT_URL = process.env.MQTT_URL;
-const MQTT_USERNAME = process.env.MQTT_USERNAME;
-const MQTT_PASSWORD = process.env.MQTT_PASSWORD;
-const MQTT_TOPIC = process.env.MQTT_TOPIC;
-
-const client = mqtt.connect(MQTT_URL, {
-  username: MQTT_USERNAME,
-  password: MQTT_PASSWORD,
-  protocol: "wss",
-  reconnectPeriod: 1000
-});
-
-client.on("connect", () => {
-  console.log("✅ MQTT Connected");
-  client.subscribe(MQTT_TOPIC, (err) => {
-    if (err) console.error("❌ MQTT Subscription error:", err);
-    else console.log(`✅ Subscribed to ${MQTT_TOPIC}`);
-  });
-});
-
-client.on("message", async (topic, message) => {
+loginBtn.onclick = async () => {
   try {
-    console.log("📥 Received message on topic:", topic);
-    console.log("🧾 Raw payload:", message.toString());
-
-    const data = JSON.parse(message.toString());
-    const { id, username, text, timestamp, senderId } = data;
-    if (!id || !text || !username) return;
-
-    const topicParts = topic.split("/");
-
-    // ✅ Public room message: chat/<room>/public
-    if (topicParts[0] === "chat" && topicParts[2] === "public") {
-      const room = topicParts[1];
-
-      await admin.firestore().collection("messages").doc(id).set({
-        username,
-        room,
-        text,
-        timestamp
-      });
-
-      console.log(`✅ Room message saved to /messages/${id}`);
-
-      const dummyToken = "FCM_DEVICE_TOKEN_HERE";
-      await admin.messaging().send({
-        notification: { title: `New message from ${username}`, body: text },
-        token: dummyToken
-      });
-
-    // ✅ Direct message: direct/<convoId>
-    } else if (topicParts[0] === "direct") {
-      const convoId = topicParts[1];
-      const resolvedSenderId = convoId.split("_").includes(senderId)
-        ? senderId
-        : convoId.split("_")[0];
-
-      const convoRef = admin.firestore().collection("conversations").doc(convoId);
-
-      await convoRef.collection("messages").doc(id).set({
-        senderId: resolvedSenderId,
-        content: text,
-        timestamp: timestamp || new Date(),
-        read: false
-      });
-
-      await convoRef.set({
-        participants: convoId.split("_"),
-        lastMessage: text,
-        lastSender: resolvedSenderId,
-        updatedAt: new Date()
-      }, { merge: true });
-
-      console.log(`✅ DM saved to /conversations/${convoId}/messages/${id}`);
-
-      const recipientId = convoId.split("_").find(uid => uid !== resolvedSenderId);
-      const userSnap = await admin.firestore().collection("users").doc(recipientId).get();
-      const fcmToken = userSnap.data()?.fcmToken;
-
-      if (fcmToken) {
-        await admin.messaging().send({
-          notification: {
-            title: `New DM from ${username}`,
-            body: text
-          },
-          token: fcmToken
-        });
-        console.log(`✅ DM Notification sent to ${recipientId}`);
-      } else {
-        console.warn(`⚠️ No FCM token for ${recipientId}`);
-      }
-
-    } else {
-      console.warn("⚠️ Unrecognized topic structure:", topic);
-    }
-
-  } catch (err) {
-    console.error("❌ Message handler error:", err.message);
+    const result = await signInWithPopup(auth, provider);
+    currentUser = result.user;
+    loginBtn.style.display = 'none';
+    logoutBtn.style.display = 'inline';
+    document.getElementById('directArea').style.display = 'block';
+    loadPeers();
+  } catch (e) {
+    alert('Login failed: ' + e.message);
   }
-});
+};
 
-exports.mqttBridge = functions.pubsub
-  .schedule("every 5 minutes")
-  .onRun((context) => {
-    console.log("⏱ MQTT bridge running");
-    return null;
+logoutBtn.onclick = async () => {
+  await signOut(auth);
+  location.reload();
+};
+
+togglePrivacy.onclick = () => {
+  isPrivate = !isPrivate;
+  togglePrivacy.innerText = isPrivate ? 'Private Chat' : 'Public Room';
+};
+
+peerSelect.onchange = async () => {
+  peerUid = peerSelect.value;
+  if (isPrivate && peerUid && currentUser?.uid) {
+    convoId = await getOrCreateConversation(currentUser.uid, peerUid);
+    chatBox.innerHTML = '';
+    listenToDirectMessages(convoId, currentUser.uid, appendMessage);
+    listenToTyping();
+  }
+};
+
+sendBtn.onclick = async () => {
+  const text = messageInput.value.trim();
+  if (!text || !peerUid || !currentUser?.uid) return;
+  await sendDirectMessage(convoId, currentUser.uid, text);
+  messageInput.value = '';
+  await db.collection('conversations').doc(convoId).update({ typing: '' });
+};
+
+messageInput.oninput = async () => {
+  if (!convoId || !currentUser?.uid) return;
+  await db.collection('conversations').doc(convoId).update({ typing: currentUser.uid });
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(async () => {
+    await db.collection('conversations').doc(convoId).update({ typing: '' });
+  }, 2000);
+};
+
+function appendMessage(data, type) {
+  const div = document.createElement('div');
+  div.className = 'message ' + type;
+  const timeStr = data.timestamp?.toDate?.().toLocaleTimeString?.() || '';
+  div.innerHTML = `${data.senderId}: ${data.content} <span class="timestamp">${timeStr}</span>`;
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function loadPeers() {
+  const q = query(collection(db, 'users'));
+  onSnapshot(q, snapshot => {
+    peerSelect.innerHTML = '<option disabled selected>Select a peer</option>';
+    snapshot.forEach(doc => {
+      const user = doc.data();
+      if (user.uid !== currentUser.uid) {
+        const opt = document.createElement('option');
+        opt.value = user.uid;
+        opt.textContent = user.displayName || user.email;
+        peerSelect.appendChild(opt);
+      }
+    });
   });
+}
+
+function listenToTyping() {
+  const convoRef = db.collection('conversations').doc(convoId);
+  convoRef.onSnapshot(snapshot => {
+    const data = snapshot.data();
+    if (data?.typing && data.typing !== currentUser.uid) {
+      typingIndicator.innerText = 'Typing...';
+    } else {
+      typingIndicator.innerText = '';
+    }
+  });
+}
