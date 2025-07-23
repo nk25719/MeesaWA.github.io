@@ -178,6 +178,10 @@
       if (event.key === 'Enter') sendMessage();
     }
 
+        await db.collection("conversations").doc(convoId).set({
+      participants: [currentUserUid, peerUid],
+      updatedAt: new Date()
+    }, { merge: true });
     
     function loadDirectMessages() {
       db.collection("conversations")
