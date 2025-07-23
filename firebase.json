@@ -40,3 +40,17 @@
     }
   }
 }
+"rewrites": [
+  {
+    "source": "/__/auth/**",
+    "destination": "/__/auth/index.html"
+  },
+  {
+    "source": "!/@(.*\\.js|.*\\.css|.*\\.json|.*\\.png|.*\\.svg|sw\\.js|firebase-messaging-sw\\.js)",
+    "destination": "/index.html"
+  },
+  {
+    "source": "**",
+    "destination": "/index.html"
+  }
+]
