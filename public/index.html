@@ -85,21 +85,22 @@
       });
     }
 
-    function listenToRoomMessages() {
-      db.collection("messages")
-        .where("room", "==", room)
-        .orderBy("timestamp", "asc")
-        .limit(50)
-        .onSnapshot(snapshot => {
-          snapshot.docChanges().forEach(change => {
-            if (change.type === "added") {
-              const data = change.doc.data();
-              const type = data.username === username ? 'you' : 'other';
-              appendMessage(`${data.username}: ${data.text}`, type, data.timestamp?.toDate?.());
-            }
-          });
-        });
-    }
+function listenToRoomMessages(room, username) {
+  db.collection("messages")
+    .where("room", "==", room)
+    .orderBy("timestamp", "asc")
+    .limit(50)
+    .onSnapshot(snapshot => {
+      snapshot.docChanges().forEach(change => {
+        if (change.type === "added") {
+          const data = change.doc.data();
+          const type = data.username === username ? 'you' : 'other';
+          appendMessage(`${data.username}: ${data.text}`, type, data.timestamp?.toDate?.());
+        }
+      });
+    });
+}
+
 
     function appendMessage(text, type = 'other', timestamp = null) {
       const chat = document.getElementById('chat');
