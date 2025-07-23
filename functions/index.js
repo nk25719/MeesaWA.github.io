@@ -28,7 +28,11 @@ loginBtn.onclick = async () => {
     logoutBtn.style.display = 'inline';
     directArea.style.display = 'block';
     loadPeers();
-    listenToRoomMessages(roomSelect.value, currentUser.displayName);
+
+    const selectedRoom = roomSelect?.value;
+    if (selectedRoom) {
+      listenToRoomMessages(selectedRoom, currentUser.displayName);
+    }
   } catch (e) {
     alert('Login failed: ' + e.message);
   }
@@ -157,6 +161,9 @@ function listenToTyping() {
 
 roomSelect.onchange = () => {
   if (!isPrivate) {
-    listenToRoomMessages(roomSelect.value, currentUser?.displayName);
+    const selectedRoom = roomSelect?.value;
+    if (selectedRoom) {
+      listenToRoomMessages(selectedRoom, currentUser?.displayName);
+    }
   }
 };
