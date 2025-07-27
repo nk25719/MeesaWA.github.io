@@ -4,7 +4,9 @@ import {
 } from './firebase.js';
 
 import {
-  getOrCreateConversation, sendDirectMessage
+  getOrCreateConversation,
+  sendDirectMessage,
+  listenToDirectMessages
 } from './directMessages.js';
 
 let currentUser = null;
@@ -12,8 +14,8 @@ let convoId = null;
 let peerUid = '';
 let isPrivate = true;
 let typingTimeout = null;
-const seenMessages = new Set();
 let unsubscribe = null;
+const seenMessages = new Set();
 
 // DOM Elements
 const loginBtn = document.getElementById('googleSignIn');
@@ -50,13 +52,14 @@ togglePrivacy.onclick = () => {
 
 peerSelect.onchange = async () => {
   peerUid = peerSelect.value;
-  if (unsubscribe) unsubscribe(); // stop old listener
+  if (unsubscribe) unsubscribe(); // stop any previous listener
 
   if (isPrivate && peerUid && currentUser?.uid) {
     convoId = await getOrCreateConversation(currentUser.uid, peerUid);
     chatBox.innerHTML = '';
     seenMessages.clear();
-    listenToMessages(convoId);
+
+    unsubscribe = listenToDirectMessages(convoId, currentUser.uid, appendMessage);
     listenToTyping();
   }
 };
@@ -88,27 +91,7 @@ function appendMessage(data, type) {
   const timeStr = data.timestamp?.toDate?.().toLocaleTimeString?.() || '';
   div.innerHTML = `${data.senderId}: ${data.content} <span class="timestamp">${timeStr}</span>`;
   chatBox.appendChild(div);
-}
-
-function listenToMessages(convoId) {
-  const messagesRef = collection(db, 'conversations', convoId, 'messages');
-  const q = query(messagesRef, orderBy('timestamp', 'asc'));
-
-  unsubscribe = onSnapshot(q, snapshot => {
-    const atBottom = chatBox.scrollTop + chatBox.clientHeight >= chatBox.scrollHeight - 50;
-
-    snapshot.docChanges().forEach(change => {
-      if (change.type === 'added') {
-        const data = change.doc.data();
-        const type = data.senderId === currentUser.uid ? 'you' : 'other';
-        appendMessage(data, type);
-      }
-    });
-
-    if (atBottom) {
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
-  });
+  chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 function loadPeers() {
