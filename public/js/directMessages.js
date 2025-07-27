@@ -2,7 +2,7 @@
 
 import {
   db, collection, addDoc, doc, setDoc, getDoc,
-  onSnapshot, orderBy, query, where, startAfter, limit, getDocs
+  onSnapshot, orderBy, query, where, startAfter, limit, getDocs, Timestamp
 } from './firebase.js';
 
 export async function getOrCreateConversation(uid1, uid2) {
@@ -13,7 +13,7 @@ export async function getOrCreateConversation(uid1, uid2) {
   if (!convoSnap.exists()) {
     await setDoc(convoRef, {
       participants: [uid1, uid2],
-      updatedAt: new Date(),
+      updatedAt: Timestamp.now(), 
     });
   }
 
@@ -25,14 +25,14 @@ export async function sendDirectMessage(convoId, senderId, content) {
   await addDoc(messagesRef, {
     senderId,
     content,
-    timestamp: new Date(),
+    timestamp: Timestamp.now(),
     read: false,
   });
 
   await setDoc(doc(db, 'conversations', convoId), {
     lastMessage: content,
     lastSender: senderId,
-    updatedAt: new Date()
+    updatedAt: Timestamp.now()
   }, { merge: true });
 }
 
