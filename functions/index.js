@@ -1,6 +1,11 @@
-// index.js
-import { auth, provider, signInWithPopup, signOut, db, collection, query, onSnapshot, orderBy } from './firebase.js';
-import { getOrCreateConversation, sendDirectMessage, getMessagesPage } from './directMessages.js';
+import {
+  auth, provider, signInWithPopup, signOut,
+  db, collection, query, onSnapshot, orderBy
+} from './firebase.js';
+
+import {
+  getOrCreateConversation, sendDirectMessage, getMessagesPage
+} from './directMessages.js';
 
 let currentUser = null;
 let convoId = null;
@@ -9,6 +14,7 @@ let isPrivate = true;
 let typingTimeout = null;
 let lastVisible = null;
 let isLoading = false;
+const seenMessages = new Set();  // prevent duplicates
 
 // DOM Elements
 const loginBtn = document.getElementById('googleSignIn');
@@ -50,7 +56,9 @@ peerSelect.onchange = async () => {
     chatBox.innerHTML = '';
     lastVisible = null;
     isLoading = false;
+    seenMessages.clear();
     await loadInitialMessages();
+    listenToNewMessages();  // 🔄 real-time updates
     chatBox.addEventListener('scroll', handleScroll);
     listenToTyping();
   }
@@ -74,10 +82,15 @@ messageInput.oninput = async () => {
 };
 
 function appendMessage(data, type, prepend = false) {
+  const messageId = data.timestamp?.toMillis?.();
+  if (seenMessages.has(messageId)) return;
+  seenMessages.add(messageId);
+
   const div = document.createElement('div');
   div.className = 'message ' + type;
   const timeStr = data.timestamp?.toDate?.().toLocaleTimeString?.() || '';
   div.innerHTML = `${data.senderId}: ${data.content} <span class="timestamp">${timeStr}</span>`;
+
   if (prepend) {
     chatBox.insertBefore(div, chatBox.firstChild);
   } else {
@@ -126,6 +139,21 @@ function handleScroll() {
   if (chatBox.scrollTop === 0 && !isLoading) {
     loadMoreMessages();
   }
+}
+
+function listenToNewMessages() {
+  const messagesRef = collection(db, 'conversations', convoId, 'messages');
+  const q = query(messagesRef, orderBy('timestamp', 'desc'), limit(1));
+
+  onSnapshot(q, snapshot => {
+    snapshot.docChanges().forEach(change => {
+      if (change.type === 'added') {
+        const data = change.doc.data();
+        const type = data.senderId === currentUser.uid ? 'you' : 'other';
+        appendMessage(data, type);
+      }
+    });
+  });
 }
 
 function loadPeers() {
