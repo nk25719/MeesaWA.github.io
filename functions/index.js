@@ -4,7 +4,7 @@ import {
 } from './firebase.js';
 
 import {
-  getOrCreateConversation, sendDirectMessage, getMessagesPage
+  getOrCreateConversation, sendDirectMessage, getMessagesPage, listenToDirectMessages
 } from './directMessages.js';
 
 let currentUser = null;
@@ -14,7 +14,7 @@ let isPrivate = true;
 let typingTimeout = null;
 let lastVisible = null;
 let isLoading = false;
-const seenMessages = new Set();  // prevent duplicates
+const seenMessages = new Set();
 
 // DOM Elements
 const loginBtn = document.getElementById('googleSignIn');
@@ -58,7 +58,7 @@ peerSelect.onchange = async () => {
     isLoading = false;
     seenMessages.clear();
     await loadInitialMessages();
-    listenToNewMessages();  // 🔄 real-time updates
+    listenToDirectMessages(convoId, currentUser.uid, appendMessage); // ✅ FULL listener
     chatBox.addEventListener('scroll', handleScroll);
     listenToTyping();
   }
@@ -83,7 +83,7 @@ messageInput.oninput = async () => {
 
 function appendMessage(data, type, prepend = false) {
   const messageId = data.timestamp?.toMillis?.();
-  if (seenMessages.has(messageId)) return;
+  if (!messageId || seenMessages.has(messageId)) return;
   seenMessages.add(messageId);
 
   const div = document.createElement('div');
@@ -139,21 +139,6 @@ function handleScroll() {
   if (chatBox.scrollTop === 0 && !isLoading) {
     loadMoreMessages();
   }
-}
-
-function listenToNewMessages() {
-  const messagesRef = collection(db, 'conversations', convoId, 'messages');
-  const q = query(messagesRef, orderBy('timestamp', 'desc'), limit(1));
-
-  onSnapshot(q, snapshot => {
-    snapshot.docChanges().forEach(change => {
-      if (change.type === 'added') {
-        const data = change.doc.data();
-        const type = data.senderId === currentUser.uid ? 'you' : 'other';
-        appendMessage(data, type);
-      }
-    });
-  });
 }
 
 function loadPeers() {
