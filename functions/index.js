@@ -1,12 +1,14 @@
 // index.js
 import { auth, provider, signInWithPopup, signOut, db, collection, query, onSnapshot, orderBy } from './firebase.js';
-import { getOrCreateConversation, sendDirectMessage, listenToDirectMessages } from './directMessages.js';
+import { getOrCreateConversation, sendDirectMessage, getMessagesPage } from './directMessages.js';
 
 let currentUser = null;
 let convoId = null;
 let peerUid = '';
 let isPrivate = true;
 let typingTimeout = null;
+let lastVisible = null;
+let isLoading = false;
 
 // DOM Elements
 const loginBtn = document.getElementById('googleSignIn');
@@ -46,7 +48,10 @@ peerSelect.onchange = async () => {
   if (isPrivate && peerUid && currentUser?.uid) {
     convoId = await getOrCreateConversation(currentUser.uid, peerUid);
     chatBox.innerHTML = '';
-    listenToDirectMessages(convoId, currentUser.uid, appendMessage);
+    lastVisible = null;
+    isLoading = false;
+    await loadInitialMessages();
+    chatBox.addEventListener('scroll', handleScroll);
     listenToTyping();
   }
 };
@@ -68,13 +73,59 @@ messageInput.oninput = async () => {
   }, 2000);
 };
 
-function appendMessage(data, type) {
+function appendMessage(data, type, prepend = false) {
   const div = document.createElement('div');
   div.className = 'message ' + type;
   const timeStr = data.timestamp?.toDate?.().toLocaleTimeString?.() || '';
   div.innerHTML = `${data.senderId}: ${data.content} <span class="timestamp">${timeStr}</span>`;
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
+  if (prepend) {
+    chatBox.insertBefore(div, chatBox.firstChild);
+  } else {
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+}
+
+async function loadInitialMessages() {
+  isLoading = true;
+  const snapshot = await getMessagesPage(convoId);
+  if (!snapshot.empty) {
+    lastVisible = snapshot.docs[snapshot.docs.length - 1];
+    const messages = [];
+    snapshot.forEach(doc => messages.unshift({ id: doc.id, ...doc.data() }));
+    messages.forEach(msg => {
+      const type = msg.senderId === currentUser.uid ? 'you' : 'other';
+      appendMessage(msg, type);
+    });
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+  isLoading = false;
+}
+
+async function loadMoreMessages() {
+  if (!lastVisible || isLoading) return;
+  isLoading = true;
+
+  const snapshot = await getMessagesPage(convoId, lastVisible);
+  if (!snapshot.empty) {
+    lastVisible = snapshot.docs[snapshot.docs.length - 1];
+    const messages = [];
+    snapshot.forEach(doc => messages.unshift({ id: doc.id, ...doc.data() }));
+    const scrollPos = chatBox.scrollHeight;
+    messages.forEach(msg => {
+      const type = msg.senderId === currentUser.uid ? 'you' : 'other';
+      appendMessage(msg, type, true);
+    });
+    chatBox.scrollTop = chatBox.scrollHeight - scrollPos;
+  }
+
+  isLoading = false;
+}
+
+function handleScroll() {
+  if (chatBox.scrollTop === 0 && !isLoading) {
+    loadMoreMessages();
+  }
 }
 
 function loadPeers() {

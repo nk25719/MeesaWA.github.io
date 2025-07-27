@@ -53,6 +53,9 @@
     const db = firebase.firestore();
 
     let username = '', room = '';
+    let lastVisible = null;
+    let isLoading = false;
+    const chat = document.getElementById('chat');
 
     document.getElementById('googleSignIn').addEventListener('click', () => {
       room = document.getElementById('room').value.trim() || 'general';
@@ -62,9 +65,10 @@
           username = result.user.displayName || result.user.email;
           document.getElementById('login').style.display = 'none';
           document.getElementById('logoutBtn').style.display = 'inline';
-          document.getElementById('chat').style.display = 'block';
+          chat.style.display = 'block';
           document.getElementById('inputArea').style.display = 'flex';
-          listenToRoomMessages();
+          loadInitialMessages();
+          chat.addEventListener('scroll', handleScroll);
         })
         .catch(err => alert("Login failed: " + err.message));
     });
@@ -85,30 +89,64 @@
       });
     }
 
-    function listenToRoomMessages() {
-      db.collection("messages")
+    async function loadInitialMessages() {
+      isLoading = true;
+      const query = db.collection("messages")
         .where("room", "==", room)
-        .orderBy("timestamp", "asc")
-        .limit(50)
-        .onSnapshot(snapshot => {
-          snapshot.docChanges().forEach(change => {
-            if (change.type === "added") {
-              const data = change.doc.data();
-              const type = data.username === username ? 'you' : 'other';
-              appendMessage(`${data.username}: ${data.text}`, type, data.timestamp?.toDate?.());
-            }
-          });
+        .orderBy("timestamp", "desc")
+        .limit(20);
+
+      const snapshot = await query.get();
+      lastVisible = snapshot.docs[snapshot.docs.length - 1];
+
+      const messages = [];
+      snapshot.forEach(doc => messages.unshift(doc.data()));
+      messages.forEach(msg => appendMessage(`${msg.username}: ${msg.text}`, msg.username === username ? 'you' : 'other', msg.timestamp?.toDate?.()));
+      chat.scrollTop = chat.scrollHeight;
+      isLoading = false;
+    }
+
+    async function loadMoreMessages() {
+      if (!lastVisible || isLoading) return;
+      isLoading = true;
+
+      const query = db.collection("messages")
+        .where("room", "==", room)
+        .orderBy("timestamp", "desc")
+        .startAfter(lastVisible)
+        .limit(20);
+
+      const snapshot = await query.get();
+      if (!snapshot.empty) {
+        lastVisible = snapshot.docs[snapshot.docs.length - 1];
+        const messages = [];
+        snapshot.forEach(doc => messages.unshift(doc.data()));
+        const scrollPos = chat.scrollHeight;
+        messages.forEach(msg => {
+          const p = document.createElement('p');
+          p.className = `message ${msg.username === username ? 'you' : 'other'}`;
+          const timeString = msg.timestamp?.toDate?.() ? `<span class="timestamp">${msg.timestamp.toDate().toLocaleTimeString()}</span>` : '';
+          p.innerHTML = `${msg.username}: ${msg.text} ${timeString}`;
+          chat.insertBefore(p, chat.firstChild);
         });
+        chat.scrollTop = chat.scrollHeight - scrollPos;
+      }
+
+      isLoading = false;
+    }
+
+    function handleScroll() {
+      if (chat.scrollTop === 0 && !isLoading) {
+        loadMoreMessages();
+      }
     }
 
     function appendMessage(text, type = 'other', timestamp = null) {
-      const chat = document.getElementById('chat');
       const p = document.createElement('p');
       p.className = `message ${type}`;
       const timeString = timestamp ? `<span class="timestamp">${new Date(timestamp).toLocaleTimeString()}</span>` : '';
       p.innerHTML = `${text} ${timeString}`;
       chat.appendChild(p);
-      chat.scrollTop = chat.scrollHeight;
     }
 
     function handleKey(event) {
