@@ -21,8 +21,9 @@
 </head>
 <body>
 
-  <h2>Meesa Chat (Firebase Only)</h2>
+  <h2>Meesa Chat (Password-Protected Rooms)</h2>
   <div id="login">
+    <input id="name" placeholder="Your name" />
     <input id="room" placeholder="Room (e.g. general)" />
     <input id="roomPassword" type="password" placeholder="Room password" />
     <button id="googleSignIn">Sign in with Google</button>
@@ -61,13 +62,18 @@
     let chat = document.getElementById('chat');
 
     document.getElementById('googleSignIn').addEventListener('click', async () => {
+      username = document.getElementById('name').value.trim() || 'Anonymous';
       room = document.getElementById('room').value.trim() || 'general';
       roomPassword = document.getElementById('roomPassword').value.trim();
-      const provider = new GoogleAuthProvider();
 
+      if (!username || !room || !roomPassword) {
+        alert('Please enter a name, room, and password.');
+        return;
+      }
+
+      const provider = new GoogleAuthProvider();
       try {
         const result = await signInWithPopup(auth, provider);
-        username = result.user.displayName || result.user.email;
         document.getElementById('login').style.display = 'none';
         document.getElementById('logoutBtn').style.display = 'inline';
         chat.style.display = 'block';
