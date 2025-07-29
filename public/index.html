@@ -61,9 +61,10 @@
     const db = getFirestore(app);
 
     let username = '', room = '', roomPassword = '';
-    let chat = document.getElementById('chat');
+    const chat = document.getElementById('chat');
     const typingIndicator = document.getElementById('typingIndicator');
     let typingTimeout = null;
+    let lastTypingSent = 0;
 
     document.getElementById('googleSignIn').addEventListener('click', async () => {
       username = document.getElementById('name').value.trim() || 'Anonymous';
@@ -119,8 +120,7 @@
         snapshot.forEach(doc => {
           const data = doc.data();
           const time = data.timestamp?.toLocaleTimeString?.() ??
-                       data.timestamp?.toDate?.()?.toLocaleTimeString() ??
-                       '';
+                       data.timestamp?.toDate?.()?.toLocaleTimeString() ?? '';
           const p = document.createElement('p');
           p.className = `message ${data.username === username ? 'you' : 'other'}`;
           p.innerHTML = `${data.username}: ${data.text} <span class="timestamp">${time}</span>`;
@@ -132,23 +132,30 @@
 
     function sendTypingStatus() {
       if (!room || !roomPassword || !username) return;
-      const typingDoc = doc(db, 'room_typing', `${room}_${roomPassword}`);
-      setDoc(typingDoc, {
-        typing: username,
-        timestamp: Date.now()
-      });
+      const now = Date.now();
+
+      if (now - lastTypingSent > 2000) {
+        lastTypingSent = now;
+        const typingDoc = doc(db, 'room_typing', `${room}_${roomPassword}`);
+        setDoc(typingDoc, {
+          typing: username,
+          timestamp: now
+        });
+      }
+
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => {
+        const typingDoc = doc(db, 'room_typing', `${room}_${roomPassword}`);
+        setDoc(typingDoc, { typing: '', timestamp: Date.now() });
+      }, 3000);
     }
 
     function listenToTyping() {
       const typingDoc = doc(db, 'room_typing', `${room}_${roomPassword}`);
       onSnapshot(typingDoc, snapshot => {
         const data = snapshot.data();
-        if (data?.typing && data.typing !== username) {
+        if (data?.typing && data.typing !== username && Date.now() - data.timestamp < 4000) {
           typingIndicator.innerText = `${data.typing} is typing...`;
-          clearTimeout(typingTimeout);
-          typingTimeout = setTimeout(() => {
-            typingIndicator.innerText = '';
-          }, 2000);
         } else {
           typingIndicator.innerText = '';
         }
