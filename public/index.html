@@ -24,6 +24,7 @@
   <h2>Meesa Chat (Firebase Only)</h2>
   <div id="login">
     <input id="room" placeholder="Room (e.g. general)" />
+    <input id="roomPassword" type="password" placeholder="Room password" />
     <button id="googleSignIn">Sign in with Google</button>
   </div>
 
@@ -56,12 +57,14 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    let username = '', room = '';
+    let username = '', room = '', roomPassword = '';
     let chat = document.getElementById('chat');
 
     document.getElementById('googleSignIn').addEventListener('click', async () => {
       room = document.getElementById('room').value.trim() || 'general';
+      roomPassword = document.getElementById('roomPassword').value.trim();
       const provider = new GoogleAuthProvider();
+
       try {
         const result = await signInWithPopup(auth, provider);
         username = result.user.displayName || result.user.email;
@@ -86,6 +89,7 @@
       await addDoc(collection(db, "messages"), {
         username,
         room,
+        roomPassword,
         text,
         timestamp: serverTimestamp()
       });
@@ -95,6 +99,7 @@
       const q = query(
         collection(db, "messages"),
         where("room", "==", room),
+        where("roomPassword", "==", roomPassword),
         orderBy("timestamp", "asc")
       );
 
