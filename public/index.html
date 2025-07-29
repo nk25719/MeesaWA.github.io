@@ -42,7 +42,7 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import {
       getFirestore, collection, addDoc, query, where,
-      orderBy, onSnapshot, serverTimestamp
+      orderBy, onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -73,7 +73,7 @@
 
       const provider = new GoogleAuthProvider();
       try {
-        const result = await signInWithPopup(auth, provider);
+        await signInWithPopup(auth, provider);
         document.getElementById('login').style.display = 'none';
         document.getElementById('logoutBtn').style.display = 'inline';
         chat.style.display = 'block';
@@ -97,7 +97,7 @@
         room,
         roomPassword,
         text,
-        timestamp: serverTimestamp()
+        timestamp: new Date()  // ✅ instant display
       });
     }
 
@@ -113,7 +113,9 @@
         chat.innerHTML = '';
         snapshot.forEach(doc => {
           const data = doc.data();
-          const time = data.timestamp?.toDate?.().toLocaleTimeString() ?? '';
+          const time = data.timestamp?.toLocaleTimeString?.() ??
+                       data.timestamp?.toDate?.()?.toLocaleTimeString() ??
+                       '';
           const p = document.createElement('p');
           p.className = `message ${data.username === username ? 'you' : 'other'}`;
           p.innerHTML = `${data.username}: ${data.text} <span class="timestamp">${time}</span>`;
