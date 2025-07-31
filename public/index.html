@@ -27,7 +27,7 @@
       font-size: 16px;
     }
 
-    input {
+    input[type="text"], input[type="password"] {
       width: 100%;
       padding: 10px;
       margin: 5px 0;
@@ -51,7 +51,7 @@
     }
 
     .message {
-      margin-bottom: 5px;
+      margin-bottom: 10px;
     }
 
     .you {
@@ -80,158 +80,155 @@
       flex-direction: column;
       gap: 5px;
     }
-
-    #message {
-      flex-grow: 1;
-    }
   </style>
 </head>
 <body>
 
-  <h2>Meesa</h2>
-  <div id="login">
-    <input id="name" placeholder="Your name" />
-    <input id="room" placeholder="Room (e.g. general)" />
-    <input id="roomPassword" type="password" placeholder="Room password" />
-    <button id="googleSignIn">Sign in with Google</button>
-  </div>
+<h2>Meesa</h2>
+<div id="login">
+  <input id="name" placeholder="Your name" />
+  <input id="room" placeholder="Room (e.g. general)" />
+  <input id="roomPassword" type="password" placeholder="Room password" />
+  <button id="googleSignIn">Sign in with Google</button>
+</div>
 
-  <button id="logoutBtn" style="display:none;">Sign Out</button>
+<button id="logoutBtn" style="display:none;">Sign Out</button>
 
-  <div id="chat" style="display:none;"></div>
+<div id="chat" style="display:none;"></div>
 
-  <div id="inputArea" style="display:none;">
-    <div id="typingIndicator"></div>
-    <input id="message" placeholder="Type a message..." onkeydown="handleKey(event)" oninput="sendTypingStatus()">
-    <button id="send" onclick="sendMessage()">Send</button>
-  </div>
+<div id="inputArea" style="display:none;">
+  <div id="typingIndicator"></div>
+  <input id="message" placeholder="Type a message..." onkeydown="handleKey(event)" oninput="sendTypingStatus()">
+  <input type="file" id="fileInput">
+  <button id="send" onclick="sendMessage()">Send</button>
+</div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import {
-      getFirestore, collection, addDoc, query, where,
-      orderBy, onSnapshot, doc, setDoc
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import {
+    getFirestore, collection, addDoc, query, where,
+    orderBy, onSnapshot, doc, setDoc
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import {
+    getStorage, ref, uploadBytes, getDownloadURL
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCg6xi0_Kx7uX6Nc4t6B-4nwukCgo5LT4k",
-      authDomain: "meesa-6cc00.firebaseapp.com",
-      projectId: "meesa-6cc00",
-      storageBucket: "meesa-6cc00.appspot.com",
-      messagingSenderId: "648709826389",
-      appId: "1:648709826389:web:3ff56515d746cabcccb1dc"
-    };
+  const firebaseConfig = { /* your config */ };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
 
-    let username = '', room = '', roomPassword = '';
-    const chat = document.getElementById('chat');
-    const typingIndicator = document.getElementById('typingIndicator');
-    let typingTimeout = null;
-    let lastTypingSent = 0;
+  let username = '', room = '', roomPassword = '';
+  const chat = document.getElementById('chat');
+  const typingIndicator = document.getElementById('typingIndicator');
+  let typingTimeout = null;
 
-    document.getElementById('googleSignIn').addEventListener('click', async () => {
-      username = document.getElementById('name').value.trim() || 'Anonymous';
-      room = document.getElementById('room').value.trim() || 'general';
-      roomPassword = document.getElementById('roomPassword').value.trim();
+  document.getElementById('googleSignIn').addEventListener('click', async () => {
+    username = document.getElementById('name').value.trim() || 'Anonymous';
+    room = document.getElementById('room').value.trim() || 'general';
+    roomPassword = document.getElementById('roomPassword').value.trim();
+    if (!username || !room || !roomPassword) return alert('Please enter all fields.');
 
-      if (!username || !room || !roomPassword) {
-        alert('Please enter a name, room, and password.');
-        return;
-      }
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('logoutBtn').style.display = 'inline';
+    chat.style.display = 'block';
+    document.getElementById('inputArea').style.display = 'flex';
+    listenToRoomMessages();
+    listenToTyping();
+  });
 
-      const provider = new GoogleAuthProvider();
-      try {
-        await signInWithPopup(auth, provider);
-        document.getElementById('login').style.display = 'none';
-        document.getElementById('logoutBtn').style.display = 'inline';
-        chat.style.display = 'block';
-        document.getElementById('inputArea').style.display = 'flex';
-        listenToRoomMessages();
-        listenToTyping();
-      } catch (err) {
-        alert("Login failed: " + err.message);
-      }
+  document.getElementById('logoutBtn').onclick = () => signOut(auth).then(() => location.reload());
+
+  async function sendMessage() {
+    const text = document.getElementById('message').value.trim();
+    const file = document.getElementById('fileInput').files[0];
+    let fileUrl = '', fileName = '', isImage = false;
+
+    if (file) {
+      const storageRef = ref(storage, `uploads/${room}/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      fileUrl = await getDownloadURL(storageRef);
+      fileName = file.name;
+      isImage = file.type.startsWith('image/');
+    }
+
+    if (!text && !fileUrl) return;
+
+    await addDoc(collection(db, "messages"), {
+      username,
+      room,
+      roomPassword,
+      text,
+      fileUrl,
+      fileName,
+      isImage,
+      timestamp: new Date()
     });
+    document.getElementById('message').value = '';
+    document.getElementById('fileInput').value = '';
+  }
 
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      signOut(auth).then(() => location.reload());
-    });
+  function listenToRoomMessages() {
+    const q = query(
+      collection(db, "messages"),
+      where("room", "==", room),
+      where("roomPassword", "==", roomPassword),
+      orderBy("timestamp", "asc")
+    );
 
-    async function sendMessage() {
-      const text = document.getElementById('message').value.trim();
-      if (!text) return;
-      document.getElementById('message').value = '';
-      await addDoc(collection(db, "messages"), {
-        username,
-        room,
-        roomPassword,
-        text,
-        timestamp: new Date()
-      });
-    }
+    onSnapshot(q, snapshot => {
+      chat.innerHTML = '';
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        const time = d.timestamp?.toDate?.().toLocaleTimeString?.() ?? '';
+        const p = document.createElement('div');
+        p.className = `message ${d.username === username ? 'you' : 'other'}`;
 
-    function listenToRoomMessages() {
-      const q = query(
-        collection(db, "messages"),
-        where("room", "==", room),
-        where("roomPassword", "==", roomPassword),
-        orderBy("timestamp", "asc")
-      );
-
-      onSnapshot(q, snapshot => {
-        chat.innerHTML = '';
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          const time = data.timestamp?.toLocaleTimeString?.() ??
-                       data.timestamp?.toDate?.()?.toLocaleTimeString() ?? '';
-          const p = document.createElement('p');
-          p.className = `message ${data.username === username ? 'you' : 'other'}`;
-          p.innerHTML = `${data.username}: ${data.text} <span class="timestamp">${time}</span>`;
-          chat.appendChild(p);
-        });
-        chat.scrollTop = chat.scrollHeight;
-      });
-    }
-
-    function sendTypingStatus() {
-      if (!room || !roomPassword || !username) return;
-      const now = Date.now();
-
-      if (now - lastTypingSent > 2000) {
-        lastTypingSent = now;
-        const typingDoc = doc(db, 'room_typing', `${room}_${roomPassword}`);
-        setDoc(typingDoc, {
-          typing: username,
-          timestamp: now
-        });
-      }
-
-      clearTimeout(typingTimeout);
-      typingTimeout = setTimeout(() => {
-        const typingDoc = doc(db, 'room_typing', `${room}_${roomPassword}`);
-        setDoc(typingDoc, { typing: '', timestamp: Date.now() });
-      }, 3000);
-    }
-
-    function listenToTyping() {
-      const typingDoc = doc(db, 'room_typing', `${room}_${roomPassword}`);
-      onSnapshot(typingDoc, snapshot => {
-        const data = snapshot.data();
-        if (data?.typing && data.typing !== username && Date.now() - data.timestamp < 4000) {
-          typingIndicator.innerText = `${data.typing} is typing...`;
-        } else {
-          typingIndicator.innerText = '';
+        let content = `<strong>${d.username}</strong>: `;
+        if (d.text) content += d.text;
+        if (d.fileUrl) {
+          if (d.isImage) content += `<br><img src="${d.fileUrl}" style="max-width:100%; max-height:200px;" />`;
+          else content += `<br><a href="${d.fileUrl}" target="_blank">📎 ${d.fileName}</a>`;
         }
-      });
-    }
 
-    window.sendMessage = sendMessage;
-    window.sendTypingStatus = sendTypingStatus;
-    window.handleKey = (e) => { if (e.key === 'Enter') sendMessage(); };
-  </script>
+        content += ` <span class="timestamp">${time}</span>`;
+        p.innerHTML = content;
+        chat.appendChild(p);
+      });
+      chat.scrollTop = chat.scrollHeight;
+    });
+  }
+
+  function sendTypingStatus() {
+    if (!room || !roomPassword || !username) return;
+    const typingDoc = doc(db, 'room_typing', `${room}_${roomPassword}`);
+    setDoc(typingDoc, { typing: username, timestamp: Date.now() });
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+      setDoc(typingDoc, { typing: '', timestamp: Date.now() });
+    }, 3000);
+  }
+
+  function listenToTyping() {
+    const typingDoc = doc(db, 'room_typing', `${room}_${roomPassword}`);
+    onSnapshot(typingDoc, snap => {
+      const d = snap.data();
+      if (d?.typing && d.typing !== username) {
+        typingIndicator.innerText = `${d.typing} is typing...`;
+      } else {
+        typingIndicator.innerText = '';
+      }
+    });
+  }
+
+  window.sendMessage = sendMessage;
+  window.sendTypingStatus = sendTypingStatus;
+  window.handleKey = (e) => { if (e.key === 'Enter') sendMessage(); };
+</script>
 </body>
 </html>
