@@ -31,6 +31,7 @@ header {
   overflow-y: auto;
   padding: 10px;
   word-break: break-word;
+  scroll-behavior: auto;
 }
 
 input, button, textarea {
@@ -105,8 +106,8 @@ input[type="password"] {
   border: none;
   background: #2a2a2a;
   color: #eee;
-  min-height: 60px;
-  max-height: 200px;
+  min-height: 80px;
+  max-height: 240px;
   overflow-y: auto;
   width: 100%;
   line-height: 1.4;
@@ -124,22 +125,22 @@ input[type="password"] {
   padding: 6px 10px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 24px;
+  font-size: 20px;
   line-height: 1;
   display: flex;
   align-items: center;
 }
 
 #attachLabel::before {
-  content: '+'; /* The actual visible plus sign */
-  font-size: 24px;
+  content: '+';
+  font-size: 28px;
   margin-right: 0;
 }
-
 
 #fileInput::-webkit-file-upload-button {
   visibility: hidden;
 }
+
 #fileInput::before {
   content: "";
 }
@@ -175,11 +176,12 @@ img.preview {
     align-items: flex-end;
     padding: 8px;
     max-width: 100%;
+    width: 100vw;
   }
 
   #message {
     flex-grow: 1;
-    width: auto;
+    width: 100%;
   }
 
   #sendBtn,
