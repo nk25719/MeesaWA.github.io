@@ -50,9 +50,17 @@ input[type="password"] {
   word-wrap: break-word;
 }
 
-.you, .other {
-  color: #eee;
+.you {
+  color: #191caf;
+  float: left;
+  text-align: left;
 }
+
+.other {
+  color: #248b6c;
+  float: left;
+  text-align: left;
+ }
 
 .timestamp {
   display: block;
@@ -60,6 +68,7 @@ input[type="password"] {
   color: #bbb;
   margin-top: 4px;
 }
+
 
 #typingIndicator {
   font-style: italic;
@@ -74,9 +83,9 @@ input[type="password"] {
   align-items: flex-end;
   padding: 10px;
   gap: 5px;
-  border-top: 1px solid #444;
+  border-top: 1px #444;
   background: #1e1e1e;
-  flex-wrap: wrap;
+  flex-wrap: flex;
 }
 
 #message {
@@ -94,7 +103,10 @@ input[type="password"] {
 }
 
 #fileInput {
-  display: none;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 #attachLabel {
