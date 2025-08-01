@@ -89,7 +89,7 @@ input[type="password"] {
   gap: 5px;
   border-top: 1px solid #444;
   background: #1e1e1e;
-  flex-wrap: wrap;
+  /* flex-wrap: wrap; */
 }
 
 #message {
