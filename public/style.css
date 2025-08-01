@@ -1,3 +1,4 @@
+/* Meesa Chat Enhanced Styles */
 * {
   box-sizing: border-box;
 }
@@ -45,19 +46,18 @@ input[type="password"] {
   border-radius: 4px;
 }
 
-/* Message appearance */
 .message {
   margin-bottom: 10px;
   word-wrap: break-word;
 }
 
 .you {
-  color: #a4b6ff; /* softened blue */
+  color: #a4b6ff;
   text-align: left;
 }
 
 .other {
-  color: #8ce2c4; /* soft green */
+  color: #8ce2c4;
   text-align: left;
 }
 
@@ -68,7 +68,6 @@ input[type="password"] {
   margin-top: 4px;
 }
 
-/* Typing indicator */
 #typingIndicator {
   font-style: italic;
   color: #aaa;
@@ -77,7 +76,6 @@ input[type="password"] {
   margin-bottom: 4px;
 }
 
-/* Input section */
 #inputArea {
   display: flex;
   align-items: flex-end;
@@ -102,23 +100,22 @@ input[type="password"] {
   overflow-y: auto;
 }
 
-/* Hidden actual file input */
 #fileInput {
   display: none;
 }
 
-/* Label styled like a button */
 #attachLabel {
   background: transparent;
   color: #ccc;
-  padding: 6px;
+  padding: 6px 10px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 20px;
   line-height: 1;
+  display: flex;
+  align-items: center;
 }
 
-/* Send button */
 #sendBtn {
   background: #007acc;
   border: none;
@@ -128,7 +125,6 @@ input[type="password"] {
   cursor: pointer;
 }
 
-/* Image preview */
 img.preview {
   max-width: 100%;
   max-height: 300px;
@@ -140,4 +136,17 @@ img.preview {
   max-width: 100px;
   margin-left: 10px;
   display: none;
+}
+
+@media (max-width: 600px) {
+  #inputArea {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #sendBtn,
+  #attachLabel {
+    width: 100%;
+    justify-content: center;
+  }
 }
