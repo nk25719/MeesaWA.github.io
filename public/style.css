@@ -105,15 +105,7 @@ input[type="password"] {
 }
 
 #fileInput {
-  background: transparent;
-  color: #ccc;
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 20px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
+  display: none;
 }
 
 #attachLabel {
@@ -126,6 +118,14 @@ input[type="password"] {
   line-height: 1;
   display: flex;
   align-items: center;
+}
+
+/* Hide "No file selected" */
+#fileInput::-webkit-file-upload-button {
+  visibility: hidden;
+}
+#fileInput::before {
+  content: "";
 }
 
 #sendBtn {
