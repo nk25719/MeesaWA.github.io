@@ -80,13 +80,16 @@ input[type="password"] {
 
 #inputArea {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   padding: 10px;
   gap: 8px;
   border-top: 1px solid #444;
   background: #1e1e1e;
   flex-wrap: nowrap;
   flex-shrink: 0;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 #message {
@@ -120,7 +123,12 @@ input[type="password"] {
   align-items: center;
 }
 
-/* Hide "No file selected" */
+#attachLabel::before {
+  content: '+';
+  font-size: 24px;
+  margin-right: 4px;
+}
+
 #fileInput::-webkit-file-upload-button {
   visibility: hidden;
 }
@@ -136,6 +144,7 @@ input[type="password"] {
   border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
+  margin-left: 4px;
 }
 
 img.preview {
@@ -154,18 +163,19 @@ img.preview {
 @media (max-width: 600px) {
   #inputArea {
     flex-direction: row;
-    flex-wrap: wrap;
-    align-items: flex-start;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    padding: 8px;
   }
 
   #message {
-    width: 100%;
     flex-grow: 1;
+    width: auto;
   }
 
   #sendBtn,
   #attachLabel {
-    flex: 0 0 auto;
-    margin-top: 6px;
+    flex-shrink: 0;
+    margin-top: 0;
   }
 }
