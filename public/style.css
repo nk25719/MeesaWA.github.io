@@ -86,25 +86,30 @@ input[type="text"], input[type="password"] {
   gap: 5px;
   border-top: 1px solid #444;
   background: #1e1e1e;
-  flex-wrap: wrap;
+  flex-wrap: flex; 
 }
 
 #message {
   flex: 1;
   resize: none;
-  padding: 10px;
+  /* padding: 10px; */
   font-size: 14px;
-  border-radius: 8px;
-  border: none;
-  background: #2a2a2a;
-  color: #eee;
+  /* border-radius: 8px; */
+  /* border: none; */
+  /* background: #2a2a2a; */
+  /* color: #eee; */
   min-height: 40px;
   max-height: 120px;
-  overflow-y: auto;
+  /* overflow-y: auto; */
 }
 
 #fileInput {
-  display: none;
+ background: #007acc;
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 #sendBtn, #attachBtn {
