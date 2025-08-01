@@ -85,7 +85,8 @@ input[type="password"] {
   gap: 8px;
   border-top: 1px solid #444;
   background: #1e1e1e;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
 }
 
 #message {
@@ -126,6 +127,7 @@ input[type="password"] {
   padding: 8px 12px;
   border-radius: 6px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 img.preview {
@@ -143,17 +145,19 @@ img.preview {
 
 @media (max-width: 600px) {
   #inputArea {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  #sendBtn,
-  #attachLabel {
-    width: 100%;
-    justify-content: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
   }
 
   #message {
     width: 100%;
+    flex-grow: 1;
+  }
+
+  #sendBtn,
+  #attachLabel {
+    flex: 0 0 auto;
+    margin-top: 6px;
   }
 }
