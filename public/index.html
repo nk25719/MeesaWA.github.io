@@ -17,9 +17,7 @@
   <input id="room" placeholder="Room (e.g. general)" />
   <input id="roomPassword" type="password" placeholder="Room password" />
   <button id="googleSignIn">Sign in with Google</button>
-  <label for="fileInput" id="attachLabel"></label>
-  <input type="file" id="fileInput">
-
+ 
 </div>
 
 <button id="logoutBtn" style="display:none;">Sign Out</button>
@@ -31,6 +29,8 @@
   <input id="message" placeholder="Type a message..." onkeydown="handleKey(event)" oninput="sendTypingStatus()">
   <input type="file" id="fileInput">
   <button id="send" onclick="sendMessage()">Send</button>
+   <label for="fileInput" id="attachLabel"></label>
+  <input type="file" id="fileInput">
 </div>
 
 <script type="module">
