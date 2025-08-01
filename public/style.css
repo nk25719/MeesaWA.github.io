@@ -1,8 +1,9 @@
-/* Meesa Chat Enhanced Styles */
+/* General box-sizing reset */
 * {
   box-sizing: border-box;
 }
 
+/* Global styles */
 body {
   font-family: sans-serif;
   background: #1e1e1e;
@@ -12,6 +13,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  overflow-x: hidden;
 }
 
 header {
@@ -87,7 +89,7 @@ input[type="password"] {
 }
 
 #message {
-  flex: 1;
+  flex: 1 1 auto;
   resize: none;
   padding: 10px;
   font-size: 14px;
@@ -98,6 +100,7 @@ input[type="password"] {
   min-height: 40px;
   max-height: 160px;
   overflow-y: auto;
+  width: 100%;
 }
 
 #fileInput {
@@ -148,5 +151,9 @@ img.preview {
   #attachLabel {
     width: 100%;
     justify-content: center;
+  }
+
+  #message {
+    width: 100%;
   }
 }
