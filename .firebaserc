@@ -1,5 +1,9 @@
 {
   "projects": {
-    "default": "meesa-6cc00"
-  }
+    "default": "meesa-6cc00",
+    "staging": "meesa-6cc00"
+  },
+
+  "targets": {},
+  "etags": {}
 }
