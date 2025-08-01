@@ -105,7 +105,15 @@ input[type="password"] {
 }
 
 #fileInput {
-  display: none;
+  background: transparent;
+  color: #ccc;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
 }
 
 #attachLabel {
