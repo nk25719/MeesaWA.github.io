@@ -93,6 +93,7 @@ input[type="password"] {
   max-width: 600px;
   margin: 0 auto;
   width: 100%;
+  box-sizing: border-box;
 }
 
 #message {
@@ -109,6 +110,8 @@ input[type="password"] {
   overflow-y: auto;
   width: 100%;
   line-height: 1.4;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 #fileInput {
@@ -121,17 +124,18 @@ input[type="password"] {
   padding: 6px 10px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 20px;
+  font-size: 24px;
   line-height: 1;
   display: flex;
   align-items: center;
 }
 
 #attachLabel::before {
-  content: '+';
+  content: '+'; /* The actual visible plus sign */
   font-size: 24px;
   margin-right: 0;
 }
+
 
 #fileInput::-webkit-file-upload-button {
   visibility: hidden;
