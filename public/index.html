@@ -59,14 +59,12 @@
       clear: both;
       word-wrap: break-word;
     }
-
     .you {
       background-color: #003366;
       color: #fff;
       float: right;
       text-align: right;
     }
-
     .other {
       background-color: #444;
       float: left;
@@ -83,7 +81,7 @@
       font-style: italic;
       color: #aaa;
       font-size: 0.9em;
-      padding: 5px 10px;
+      padding-left: 10px;
     }
 
     #inputArea {
@@ -113,10 +111,18 @@
       display: none;
     }
 
-    #sendBtn, #attachLabel {
+    #sendBtn, #attachBtn {
       background: #007acc;
       border: none;
       color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #attachLabel {
+      background: #555;
+      color: #fff;
       padding: 8px 12px;
       border-radius: 6px;
       cursor: pointer;
@@ -129,8 +135,9 @@
       margin-top: 6px;
     }
 
-    #login {
-      padding: 20px;
+    #imagePreview {
+      max-width: 100px;
+      margin-left: 10px;
     }
   </style>
 </head>
@@ -138,6 +145,7 @@
 
 <header>
   <span id="roomInfo">Room:</span>
+  <span id="userInfo"></span>
   <button id="logoutBtn" style="display:none;">Sign Out</button>
 </header>
 
@@ -150,15 +158,36 @@
 
 <div id="chat" style="display:none;"></div>
 <div id="typingIndicator"></div>
-
 <div id="inputArea" style="display:none;">
-  <textarea id="message" placeholder="Type a message..." onkeydown="handleKey(event)" oninput="sendTypingStatus()"></textarea>
-  <input type="file" id="fileInput" />
+  <textarea id="message" placeholder="Type a message..." onkeydown="handleKey(event)" oninput="sendTypingStatus(); autoGrow(this)"></textarea>
+  <input type="file" id="fileInput" onchange="previewImage(event)" />
   <label for="fileInput" id="attachLabel">📎</label>
+  <img id="imagePreview" style="display:none;" />
   <button id="sendBtn" onclick="sendMessage()">Send</button>
 </div>
 
 <script type="module" src="app.js"></script>
+<script>
+  function autoGrow(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  }
 
+  function previewImage(event) {
+    const file = event.target.files[0];
+    const preview = document.getElementById('imagePreview');
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    } else {
+      preview.style.display = 'none';
+      preview.src = '';
+    }
+  }
+</script>
 </body>
 </html>
