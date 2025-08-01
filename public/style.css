@@ -124,9 +124,9 @@ input[type="password"] {
 }
 
 #attachLabel::before {
-  content: '+';
+  content: '\002B'; /* Unicode for + */
   font-size: 24px;
-  margin-right: 4px;
+  margin-right: 0;
 }
 
 #fileInput::-webkit-file-upload-button {
@@ -166,6 +166,7 @@ img.preview {
     flex-wrap: nowrap;
     align-items: flex-end;
     padding: 8px;
+    max-width: 100%;
   }
 
   #message {
