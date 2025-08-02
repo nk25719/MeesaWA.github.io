@@ -24,12 +24,13 @@
 
 <div id="inputArea" style="display:none;">
   <div id="typingIndicator"></div>
-  <textarea id="message" placeholder="Type a message..." onkeydown="handleKey(event)" oninput="sendTypingStatus()"></textarea>
-  <div id="actions">
+  <div id="promptBox">
+    <textarea id="message" placeholder="Type a message..." onkeydown="handleKey(event)" oninput="sendTypingStatus()"></textarea>
     <label for="fileInput" id="attachLabel"></label>
     <input type="file" id="fileInput">
-    <button id="sendBtn" onclick="sendMessage()">Send</button>
+    <button id="sendBtn" onclick="sendMessage()">➤</button>
   </div>
+  <span id="fileAttached"></span>
 </div>
 
 <script type="module">
@@ -87,6 +88,9 @@ const firebaseConfig = {
     const text = document.getElementById('message').value.trim();
     const file = document.getElementById('fileInput').files[0];
     let fileUrl = '', fileName = '', isImage = false;
+    document.getElementById('fileAttached').style.display = 'none';
+    document.getElementById('fileAttached').innerText = '';
+
 
     if (file) {
       const storageRef = ref(storage, `uploads/${room}/${Date.now()}_${file.name}`);
@@ -168,6 +172,18 @@ const firebaseConfig = {
   window.sendMessage = sendMessage;
   window.sendTypingStatus = sendTypingStatus;
   window.handleKey = (e) => { if (e.key === 'Enter') sendMessage(); };
+  document.getElementById('fileInput').addEventListener('change', () => {
+  const file = document.getElementById('fileInput').files[0];
+  const fileIndicator = document.getElementById('fileAttached');
+  if (file) {
+    fileIndicator.style.display = 'inline';
+    fileIndicator.innerText = `📎 ${file.name}`;
+  } else {
+    fileIndicator.style.display = 'none';
+    fileIndicator.innerText = '';
+  }
+});
+
 </script>
 </body>
 </html>
