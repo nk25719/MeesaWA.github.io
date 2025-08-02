@@ -85,7 +85,6 @@ firebase deploy
 ## 🔐 Notes
 
 * Firebase messaging API key is public by design (safe for frontend use)
-* Use service account for secure backend notifications (already included)
 
 ---
 
