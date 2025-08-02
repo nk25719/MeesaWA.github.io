@@ -221,7 +221,7 @@ img.preview {
   display: none;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 1200px) {
   #inputArea {
     flex-direction: column;
     padding: 8px;
