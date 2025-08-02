@@ -159,10 +159,11 @@ img.preview {
   color: #eee;
   font-size: 14px;
   line-height: 1.4;
-  white-space: pre-wrap;
-  word-wrap: break-word;
+  white-space: pre-wrap;     /* Allows wrapping with line breaks */
+  /* word-wrap: break-word;     Breaks long words if needed */
   width: 100%;
 }
+
 
 #actions {
   display: flex;
