@@ -156,6 +156,7 @@ img.preview {
   flex: 1;
   width: 100%;
   box-sizing: border-box;
+  flex-wrap: wrap; /* ← Add this */
 }
 
 #fileAttached {
@@ -222,22 +223,35 @@ img.preview {
   #inputArea {
     flex-direction: column;
     padding: 8px;
+    width: 100%;
+  }
+
+  #promptBox {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 6px;
   }
 
   #message {
     width: 100%;
+    min-height: 60px;
+    flex: 1 1 100%;
   }
 
-  #actions {
-    width: 100%;
-    justify-content: space-between;
+  #sendBtn,
+  #attachLabel {
+    font-size: 18px;
+    padding: 6px 10px;
   }
-    #promptBox {
-    flex-wrap: wrap;
-  }
- 
+
   #fileAttached {
     width: 100%;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-left: 4px;
   }
 }
 
