@@ -24,7 +24,7 @@
 
 <div id="inputArea" style="display:none;">
   <div id="typingIndicator"></div>
-  <input id="message" placeholder="Type a message..." onkeydown="handleKey(event)" oninput="sendTypingStatus()">
+  <textarea id="message" placeholder="Type a message..." onkeydown="handleKey(event)" oninput="sendTypingStatus()"></textarea>
   <div id="actions">
     <label for="fileInput" id="attachLabel"></label>
     <input type="file" id="fileInput">
