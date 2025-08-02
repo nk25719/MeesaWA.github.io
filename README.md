@@ -1,51 +1,49 @@
 # Meesa PWA Chat App
 
-A real-time, installable, offline-capable chat application built with MQTT, Firebase, and PWA technologies.
+A real-time, installable, and offline-capable chat application built entirely with **Firebase** and **Progressive Web App (PWA)** technologies.
 
 ---
 
 ## 🌐 Live Demo
 
-**[https://meesa-wa.web.app](https://meesa-wa.web.app)**
+👉 **[https://meesa-wa.web.app](https://meesa-wa.web.app)**
 
 ---
 
 ## 📦 Features
 
-* ✅ Real-time messaging via **MQTT (HiveMQ Cloud)**
-* ✅ Firebase push notification integration
-* ✅ Full **Progressive Web App (PWA)** support
-* ✅ Offline mode with service worker caching
-* ✅ Works on mobile and desktop
-* ✅ Installable on Android/iOS
-* ✅ Message history saved locally
+* ✅ Real-time messaging via **Firebase Firestore**
+* ✅ Push notifications using **Firebase Cloud Messaging**
+* ✅ Full **PWA** support (installable on Android/iOS)
+* ✅ **Offline mode** with service worker caching
+* ✅ Mobile- and desktop-friendly interface
+* ✅ **Message history** stored and synced with Firestore
+* ✅ Local caching for performance
 
 ---
 
-## 🗂 Directory Structure
+## 🗂 Project Structure
+
+
 
 ```
 meesa-pwa/
-├── README.md                    # Project documentation
-├── firebase.json               # Firebase hosting config
-├── .firebaserc                 # Firebase project config
-├── mqtt-messages.db            # Local SQLite DB
-├── public/                     # Frontend (PWA)
-│   ├── index.html
-│   ├── sw.js
-│   ├── manifest.json
-│   ├── icon-192.png
-│   ├── icon-512.png
-│   ├── splash.png
-│   └── firebase-messaging-sw.js
-├── functions/                    # Node.js MQTT + Firebase bridge
-│   ├── .env
-│   ├── package.json                # Backend dependencies
-│   ├── server.js
-│   ├── db.js
-│   ├── firebase.js
-│   ├── index.js
-│   └── serviceAccountKey.json
+├── README.md # Project documentation
+├── firebase.json # Firebase hosting config
+├── .firebaserc # Firebase project config
+├── public/ # Frontend (PWA)
+│ ├── index.html
+│ ├── sw.js
+│ ├── manifest.json
+│ ├── icon-192.png
+│ ├── icon-512.png
+│ ├── splash.png
+│ └── firebase-messaging-sw.js
+├── functions/ # Optional backend (cloud functions)
+│ ├── .env
+│ ├── package.json
+│ ├── index.js
+│ └── serviceAccountKey.json
 
 ```
  
@@ -93,10 +91,11 @@ firebase deploy
 
 ## 🛠 Built With
 
-* [Firebase Hosting](https://firebase.google.com/products/hosting)
-* [MQTT.js](https://github.com/mqttjs/MQTT.js)
-* [HiveMQ Cloud](https://www.hivemq.com/mqtt-cloud-broker/)
-* [Firebase Messaging](https://firebase.google.com/docs/cloud-messaging)
+- [Firebase Hosting](https://firebase.google.com/products/hosting)
+- [Firebase Firestore](https://firebase.google.com/products/firestore)
+- [Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging)
+- [Progressive Web App (PWA) APIs](https://web.dev/progressive-web-apps/)
+
 
 ---
 
